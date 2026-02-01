@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heartopia V32 Invincible</title>
+    <title>Heartopia V45 Final Visual</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -22,6 +22,16 @@
             user-select: none;
         }
 
+        /* TIME DISPLAY (Floating) */
+        #time-display {
+            position: absolute; top: 10px; right: 15px;
+            font-family: 'Roboto Mono', monospace; font-size: 14px; font-weight: bold;
+            color: #fab1a0; background: rgba(0,0,0,0.7);
+            padding: 5px 12px; border-radius: 20px; pointer-events: none; z-index: 50;
+            border: 1px solid rgba(255,255,255,0.2);
+            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
+        }
+
         /* SHEET MUSIC */
         #sheet-container {
             height: 160px;
@@ -35,12 +45,23 @@
             position: relative;
             scrollbar-width: none;
             flex-shrink: 0;
+            cursor: grab;
         }
+        #sheet-container:active { cursor: grabbing; }
+        
+        /* *** NEW MARKER STYLE (LASER LINE) *** */
         #sheet-marker {
-            position: absolute; left: 50px; top: 0; bottom: 0; width: 4px;
-            background: rgba(255, 255, 255, 0.9); z-index: 5; pointer-events: none;
-            box-shadow: 0 0 15px rgba(255, 255, 255, 0.8);
+            position: absolute; 
+            left: 50px; 
+            top: 0; 
+            bottom: 0; 
+            width: 2px; /* Thinner line */
+            background: #ffffff; /* White */
+            z-index: 20; /* On top of notes */
+            pointer-events: none;
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 20px rgba(255, 255, 255, 0.5); /* Glow */
         }
+
         .sheet-group {
             display: inline-flex; flex-direction: column-reverse;
             align-items: center; justify-content: center;
@@ -65,6 +86,7 @@
             display: flex; gap: 10px; align-items: center;
             height: 50px; border-bottom: 1px solid #444; z-index: 20;
             flex-shrink: 0;
+            overflow-x: auto; white-space: nowrap;
         }
         button, input[type=file]::file-selector-button {
             padding: 6px 12px; background: #4a4a6a; color: white;
@@ -76,6 +98,46 @@
         button[data-mode="MANUAL"] { background: #ffc107; color: #000; }
         button[data-mode="WAIT"] { background: #ff4757; color: #fff; box-shadow: 0 0 5px #ff4757; }
         button.active { background: #fff; color: #000; border-color: #00d2ff; }
+        
+        #btnSettings { background: #6c5ce7; border-color: #a29bfe; font-size: 16px; padding: 4px 10px; }
+        #btnHelp { background: #00b894; border-color: #55efc4; font-size: 14px; padding: 6px 10px; }
+        #btnCredit { background: #ff7675; border-color: #fab1a0; color: #fff; font-size: 14px; padding: 6px 10px; }
+        #btnTrackMode { background: #e84393; border-color: #fd79a8; color: #fff; }
+
+        /* MODALS */
+        .modal {
+            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center;
+        }
+        .modal-content {
+            background: #2d2d3a; padding: 20px; border-radius: 12px; border: 2px solid #6c5ce7;
+            max-width: 90%; width: 350px; color: #eee; font-family: 'Nunito', sans-serif; position: relative;
+        }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
+        .close-btn:hover { color: #fff; }
+        
+        /* SETTINGS MODAL */
+        #settings-modal {
+            display: none; position: absolute; top: 60px; left: 20px;
+            background: rgba(30, 30, 40, 0.95); border: 2px solid #6c5ce7;
+            border-radius: 10px; padding: 15px; z-index: 90;
+            box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 250px;
+        }
+        .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .setting-label { font-size: 14px; color: #aaa; }
+        .setting-val { font-weight: bold; color: #fff; width: 30px; text-align: center; }
+        input[type=range] { width: 100px; accent-color: #00d2ff; }
+        .trans-btn { width: 30px; height: 30px; padding: 0; border-radius: 50%; background: #444; border: 1px solid #666; }
+
+        /* LINKS */
+        .donate-link {
+            display: block; text-align: center; padding: 10px; margin-top: 10px; border-radius: 8px;
+            text-decoration: none; font-weight: bold; transition: transform 0.1s;
+        }
+        .donate-link:hover { transform: scale(1.02); filter: brightness(1.1); }
+        .kofi { background: #00b894; color: #fff; border: 1px solid #55efc4; }
+        .tipme { background: #0984e3; color: #fff; border: 1px solid #74b9ff; }
+        .tiktok { background: #000000; color: #fff; border: 1px solid #333; }
 
         /* HISTORY BAR */
         #history-bar {
@@ -109,9 +171,10 @@
 </head>
 <body>
 
+<div id="time-display">0:00 / 0:00</div> 
+
 <div id="sheet-container">
-    <div id="sheet-marker"></div>
-    <div id="sheet-content" style="display:flex; align-items:center;">
+    <div id="sheet-marker"></div> <div id="sheet-content" style="display:flex; align-items:center;">
         <span style="color:#aaa; font-size:14px; padding-left:20px;">Load MIDI...</span>
     </div>
 </div>
@@ -120,11 +183,58 @@
     <input type="file" id="fileInput" accept=".mid">
     <button id="btnPlay">PLAY</button>
     <button id="btnPlayMode" data-mode="AUTO">Mode: AUTO</button>
+    <button id="btnTrackMode">Track: ALL</button>
+    <button id="btnSettings">⚙️</button>
+    <button id="btnHelp">❓</button>
+    <button id="btnCredit">❤️</button>
     <button id="btnViewMode" class="active">View: MOBILE</button> 
     <span id="statusText">Loading...</span>
 </div>
 
-<div id="history-bar" style="display:none;">
+<div id="settings-modal">
+    <div class="setting-row">
+        <span class="setting-label">Volume</span>
+        <input type="range" id="volSlider" min="-30" max="0" value="-5">
+        <span id="volVal" class="setting-val">-5</span>
+    </div>
+    <div class="setting-row">
+        <span class="setting-label">Transpose</span>
+        <div style="display:flex; align-items:center; gap:5px;">
+            <button class="trans-btn" id="transDown">-</button>
+            <span id="transVal" class="setting-val">0</span>
+            <button class="trans-btn" id="transUp">+</button>
+        </div>
+    </div>
+</div>
+
+<div id="helpModal" class="modal">
+    <div class="modal-content">
+        <span class="close-btn" id="closeHelp">&times;</span>
+        <h2 style="color:#00b894; border-bottom:1px solid #444; padding-bottom:10px; margin-top:0;">🎹 How to Play</h2>
+        <h3 style="color:#ffc107; margin-bottom:5px;">1. Track Mode</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;">• <b>ALL:</b> Play everything.<br>• <b>MELODY:</b> Hides/Mutes the low row so you can focus on melody.</p>
+        <h3 style="color:#ffc107; margin-bottom:5px;">2. Play Modes</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;">• <b>AUTO:</b> Watch & Listen<br>• <b>MANUAL:</b> Play by yourself<br>• <b>WAIT:</b> Game waits for you</p>
+        <h3 style="color:#ffc107; margin-bottom:5px;">3. Navigation</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;">• <b>Swipe/Drag</b> on the note area to seek song position!</p>
+    </div>
+</div>
+
+<div id="creditModal" class="modal">
+    <div class="modal-content" style="text-align:center;">
+        <span class="close-btn" id="closeCredit">&times;</span>
+        <h2 style="color:#ff7675; border-bottom:1px solid #444; padding-bottom:10px; margin-top:0;">❤️ Credits</h2>
+        <p style="font-size:16px; color:#fff; margin-bottom:20px;">
+            <b>Discord :</b> mashpotato7
+        </p>
+        <p style="font-size:13px; color:#aaa; margin-bottom:10px;">Follow & Support:</p>
+        <a href="https://www.tiktok.com/@professorraccoon29" target="_blank" class="donate-link tiktok">🎵 TikTok: @professorraccoon29</a>
+        <a href="https://ko-fi.com/atd764678" target="_blank" class="donate-link kofi">☕ Donate via Ko-fi</a>
+        <a href="https://tipme.in.th/pmatsumadonate" target="_blank" class="donate-link tipme">💸 Donate via TipMe</a>
+    </div>
+</div>
+
+<div id="history-bar" style="display:flex;"> 
     <span style="color:#666; font-size:10px; margin-right:auto;">HISTORY:</span>
 </div>
 
@@ -142,7 +252,10 @@
     function addKey(pitch, charPC, charMobile, rowType, style) {
         let rowArr = (rowType === 0) ? ROWS.LOW : (rowType === 1) ? ROWS.MID : ROWS.HIGH;
         let slotInRow = rowArr.length;
-        let globalSlot = (rowType === 0) ? (slotInRow>=5 ? slotInRow+1 : slotInRow) : (rowType === 1 ? 14+slotInRow : 27+slotInRow);
+        let globalSlot = 0;
+        if (rowType === 0) globalSlot = (slotInRow >= 5) ? slotInRow + 1 : slotInRow; 
+        else if (rowType === 1) globalSlot = 14 + slotInRow; 
+        else globalSlot = 27 + slotInRow;
 
         KEY_INFO[pitch] = { charPC, charMobile, row: rowType, slotRow: slotInRow, slotGlobal: globalSlot, style };
         
@@ -152,9 +265,9 @@
         rowArr.push(pitch);
     }
 
-    // Define Keys
     addKey(48, ',', '1', 0, 'w'); addKey(49, 'L', '1#', 0, 'b'); addKey(50, '.', '2', 0, 'w'); 
-    addKey(51, ';', '2#', 0, 'b'); addKey(52, '/', '3', 0, 'w'); addKey(53, 'O', '4', 0, 'b'); 
+    addKey(51, ';', '2#', 0, 'b'); addKey(52, '/', '3', 0, 'w'); 
+    addKey(53, 'O', '4', 0, 'w'); 
     addKey(54, '0', '4#', 0, 'b'); addKey(55, 'P', '5', 0, 'w'); addKey(56, '-', '5#', 0, 'b'); 
     addKey(57, '[', '6', 0, 'w'); addKey(58, '=', '6#', 0, 'b'); addKey(59, ']', '7', 0, 'w');
 
@@ -183,58 +296,34 @@
     const reverb = new Tone.Reverb({ decay: 1.5, wet: 0.2 }).toDestination();
     sampler.connect(reverb); sampler.volume.value = -5;
 
-    let midiData = null;
-    let isPlaying = false;
-    let viewMode = 'MOBILE';
-    let soundMode = 'AUTO'; 
-    let activeTouches = new Set(); 
-    let activeAutoNotes = new Set(); 
-    let sheetElements = [];
-    let playGroups = []; 
-    let nextGroupIndex = 0;
-    let waitingForPitches = new Set(); 
-    let isWaitingState = false; 
-    let wrongKeyFeedback = null; 
+    let midiData = null; let isPlaying = false; let viewMode = 'MOBILE'; let soundMode = 'AUTO'; 
+    let trackMode = 'ALL'; 
+    let activeTouches = new Set(); let activeAutoNotes = new Set(); 
+    let sheetElements = []; let playGroups = []; let nextGroupIndex = 0;
+    let waitingForPitches = new Set(); let isWaitingState = false; let wrongKeyFeedback = null; 
+    let globalTranspose = 0;
+    let isScrubbing = false; 
     
-    const canvas = document.getElementById('gameCanvas');
-    const ctx = canvas.getContext('2d');
+    const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
 
-    // --- 3. HELPER LOGIC ---
-    function getSmartInfo(pitch) {
-        let target = pitch;
-        if (!KEY_INFO[target]) {
-             const keys = Object.keys(KEY_INFO).map(Number).sort((a,b)=>a-b);
-             if (keys.length === 0) return null; // Safety check
-             while(target < keys[0]) target += 12;
-             while(target > keys[keys.length-1]) target -= 12;
-             target = keys.reduce((prev, curr) => Math.abs(curr-target) < Math.abs(prev-target) ? curr : prev);
-        }
-        return KEY_INFO[target];
-    }
-
-    function addToHistory(char, row) {
-        if (viewMode !== 'MOBILE') return;
-        const bar = document.getElementById('history-bar');
-        const item = document.createElement('span');
-        item.className = 'history-item';
-        item.innerHTML = char; 
-        item.style.color = ROW_COLORS[row];
-        item.style.borderColor = ROW_COLORS[row];
-        bar.appendChild(item);
-        setTimeout(() => { if(item.parentNode) item.remove(); }, 4000);
+    // --- 3. HELPER FUNCTIONS ---
+    function formatTime(seconds) {
+        if (isNaN(seconds)) return "0:00";
+        const m = Math.floor(seconds / 60);
+        const s = Math.floor(seconds % 60);
+        return `${m}:${s.toString().padStart(2, '0')}`;
     }
 
     function generateSheetMusic(midi) {
         const container = document.getElementById('sheet-content');
-        container.innerHTML = ""; sheetElements = [];
-        let allNotesRaw = [];
-
+        container.innerHTML = ""; sheetElements = []; let allNotesRaw = [];
         midi.tracks.forEach(track => {
             track.notes.forEach(note => {
-                let info = getSmartInfo(note.midi);
-                if (info) { // Safety check
+                let transposedPitch = note.midi + globalTranspose;
+                let info = getSmartInfo(transposedPitch);
+                if(info) {
                     allNotesRaw.push({ 
-                        time: note.time, pitch: note.midi, 
+                        time: note.time, pitch: transposedPitch, 
                         char: viewMode==='MOBILE'? info.charMobile : info.charPC,
                         row: info.row, duration: note.duration
                     });
@@ -242,51 +331,135 @@
             });
         });
         allNotesRaw.sort((a, b) => a.time - b.time);
-
         playGroups = [];
         if (allNotesRaw.length > 0) {
             let currentGroup = { time: allNotesRaw[0].time, notes: [allNotesRaw[0]] };
             for (let i = 1; i < allNotesRaw.length; i++) {
-                if (allNotesRaw[i].time - currentGroup.time < 0.05) {
-                    currentGroup.notes.push(allNotesRaw[i]);
-                } else {
-                    playGroups.push(currentGroup);
-                    currentGroup = { time: allNotesRaw[i].time, notes: [allNotesRaw[i]] };
-                }
+                if (allNotesRaw[i].time - currentGroup.time < 0.05) currentGroup.notes.push(allNotesRaw[i]);
+                else { playGroups.push(currentGroup); currentGroup = { time: allNotesRaw[i].time, notes: [allNotesRaw[i]] }; }
             }
             playGroups.push(currentGroup);
         }
-
         playGroups.forEach(group => {
-            const div = document.createElement('div');
-            div.className = 'sheet-group';
+            const div = document.createElement('div'); div.className = 'sheet-group';
             group.notes.sort((a,b) => a.row - b.row);
             group.notes.forEach(n => {
-                const span = document.createElement('span');
-                span.className = 'char-note'; span.innerText = n.char; span.style.color = ROW_COLORS[n.row];
+                const span = document.createElement('span'); span.className = 'char-note'; span.innerText = n.char; span.style.color = ROW_COLORS[n.row];
                 if(n.char.includes('#')) span.innerHTML = n.char.replace('#', '<small>#</small>');
                 div.appendChild(span);
             });
-            container.appendChild(div);
-            sheetElements.push({ time: group.time, element: div });
+            container.appendChild(div); sheetElements.push({ time: group.time, element: div });
         });
         const pad = document.createElement('div'); pad.style.width = "400px"; container.appendChild(pad);
     }
 
-    // --- 4. ENGINE ---
-    function updateSheet(currentTime) {
-        const container = document.getElementById('sheet-container');
-        const markerOffset = 50;
-        let targetIdx;
+    function getSmartInfo(pitch) {
+        let target = pitch;
+        if (!KEY_INFO[target]) {
+             const keys = Object.keys(KEY_INFO).map(Number).sort((a,b)=>a-b);
+             if (keys.length === 0) return null;
+             while(target < keys[0]) target += 12; while(target > keys[keys.length-1]) target -= 12;
+             target = keys.reduce((prev, curr) => Math.abs(curr-target) < Math.abs(prev-target) ? curr : prev);
+        }
+        return KEY_INFO[target];
+    }
 
-        if (soundMode === 'WAIT' && isWaitingState) {
-            targetIdx = nextGroupIndex;
-        } else {
+    function addToHistory(char, row) {
+        const bar = document.getElementById('history-bar');
+        const item = document.createElement('span'); item.className = 'history-item';
+        item.innerHTML = char; item.style.color = ROW_COLORS[row]; item.style.borderColor = ROW_COLORS[row];
+        bar.appendChild(item); setTimeout(() => { if(item.parentNode) item.remove(); }, 4000);
+    }
+
+    function restartGame() {
+        if(!midiData) return;
+        Tone.Transport.stop(); Tone.Transport.cancel();
+        activeAutoNotes.clear(); waitingForPitches.clear(); nextGroupIndex = 0;
+        isPlaying = false; document.getElementById('btnPlay').innerText = "PLAY";
+        generateSheetMusic(midiData); 
+        
+        midiData.tracks.forEach(track => {
+            track.notes.forEach(note => {
+                let transposedPitch = note.midi + globalTranspose;
+                let info = getSmartInfo(transposedPitch);
+                if (!info) return;
+                
+                if (trackMode === 'MELODY' && info.row === 0) return; 
+
+                Tone.Transport.schedule((time) => {
+                    if (soundMode === 'AUTO') {
+                        sampler.triggerAttackRelease(Tone.Frequency(transposedPitch, "midi").toNote(), note.duration, time);
+                        Tone.Draw.schedule(() => {
+                            let info = getSmartInfo(transposedPitch);
+                            for(let p in KEY_INFO) {
+                                if(KEY_INFO[p] === info) {
+                                    activeAutoNotes.add(parseInt(p));
+                                    addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, info.row);
+                                    break;
+                                }
+                            }
+                        }, time);
+                        Tone.Draw.schedule(() => {
+                            let info = getSmartInfo(transposedPitch);
+                            for(let p in KEY_INFO) { if(KEY_INFO[p] === info) { activeAutoNotes.delete(parseInt(p)); break; } }
+                        }, time + note.duration);
+                    }
+                }, note.time);
+            });
+        });
+    }
+
+    // --- 4. SCRUBBING LOGIC ---
+    const sheetContainer = document.getElementById('sheet-container');
+    let startX, startScrollLeft;
+
+    sheetContainer.addEventListener('mousedown', (e) => {
+        isScrubbing = true;
+        startX = e.pageX - sheetContainer.offsetLeft;
+        startScrollLeft = sheetContainer.scrollLeft;
+        sheetContainer.style.cursor = 'grabbing';
+    });
+    sheetContainer.addEventListener('mouseleave', () => { isScrubbing = false; sheetContainer.style.cursor = 'grab'; });
+    sheetContainer.addEventListener('mouseup', () => { isScrubbing = false; sheetContainer.style.cursor = 'grab'; });
+    sheetContainer.addEventListener('mousemove', (e) => {
+        if (!isScrubbing) return;
+        e.preventDefault();
+        const x = e.pageX - sheetContainer.offsetLeft;
+        const walk = (x - startX) * 2; 
+        sheetContainer.scrollLeft = startScrollLeft - walk;
+        seekToScrollPosition();
+    });
+    sheetContainer.addEventListener('touchstart', () => { isScrubbing = true; });
+    sheetContainer.addEventListener('touchend', () => { isScrubbing = false; });
+    sheetContainer.addEventListener('scroll', () => {
+        if(isScrubbing) seekToScrollPosition();
+    });
+
+    function seekToScrollPosition() {
+        if(!midiData || sheetElements.length === 0) return;
+        const currentScroll = sheetContainer.scrollLeft;
+        const marker = 50;
+        let closest = sheetElements.reduce((prev, curr) => {
+            return (Math.abs(curr.element.offsetLeft - marker - currentScroll) < Math.abs(prev.element.offsetLeft - marker - currentScroll) ? curr : prev);
+        });
+        if(closest) {
+            Tone.Transport.seconds = closest.time;
+            nextGroupIndex = playGroups.findIndex(g => g.time >= closest.time);
+            if(nextGroupIndex < 0) nextGroupIndex = 0;
+        }
+    }
+
+    // --- 5. ENGINE ---
+    function updateSheet(currentTime) {
+        if (isScrubbing) return; 
+
+        const container = document.getElementById('sheet-container'); const markerOffset = 50; let targetIdx;
+        if (soundMode === 'WAIT' && isWaitingState) targetIdx = nextGroupIndex;
+        else {
             targetIdx = sheetElements.findIndex(e => e.time > currentTime);
             if (targetIdx === -1 && sheetElements.length > 0) targetIdx = sheetElements.length;
             if (targetIdx > 0) targetIdx--; 
         }
-
         if (targetIdx >= 0 && targetIdx < sheetElements.length) {
             for(let i=0; i<sheetElements.length; i++) {
                 const elm = sheetElements[i].element;
@@ -301,207 +474,149 @@
 
     function checkWaitMode() {
         if (soundMode !== 'WAIT' || !isPlaying) return;
-        
         if (nextGroupIndex < playGroups.length) {
             let nextGroup = playGroups[nextGroupIndex];
             if (Tone.Transport.seconds >= nextGroup.time - 0.05) { 
-                Tone.Transport.pause();
-                isWaitingState = true; 
-                waitingForPitches.clear();
+                Tone.Transport.pause(); isWaitingState = true; waitingForPitches.clear();
                 nextGroup.notes.forEach(n => {
                     let info = getSmartInfo(n.pitch);
-                    if(info) {
-                        for(let p in KEY_INFO) {
-                            if(KEY_INFO[p] === info) { waitingForPitches.add(parseInt(p)); break; }
-                        }
+                    if(info) { 
+                        if (trackMode === 'MELODY' && info.row === 0) return;
+                        for(let p in KEY_INFO) { if(KEY_INFO[p] === info) { waitingForPitches.add(parseInt(p)); break; } }
                     }
                 });
+                
+                if (waitingForPitches.size === 0) {
+                    isWaitingState = false; nextGroupIndex++; Tone.Transport.start(); return;
+                }
+
                 updateSheet(nextGroup.time);
-                document.getElementById('statusText').innerText = "WAITING FOR INPUT...";
-                document.getElementById('statusText').style.color = "#ff4757";
+                document.getElementById('statusText').innerText = "WAITING..."; document.getElementById('statusText').style.color = "#ff4757";
             }
         } else { waitingForPitches.clear(); }
     }
 
-    function resize() {
-        if(canvas.parentElement) {
-            canvas.width = canvas.parentElement.clientWidth;
-            canvas.height = canvas.parentElement.clientHeight;
-        }
-    }
+    function resize() { if(canvas.parentElement) { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; } }
     window.addEventListener('resize', resize);
     
-    // *** THE INVINCIBLE DRAW LOOP ***
     function draw() {
-        // Safety check: Canvas dimensions
-        if(canvas.width === 0 || canvas.height === 0) resize();
-
+        if(canvas.width === 0) resize();
         try {
             ctx.fillStyle = "#1a1a24"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+            if (viewMode === 'PC') drawPCMode(); else drawMobileMode();
+            
+            // Time Display Update
+            let total = midiData ? midiData.duration : 0;
+            let current = Tone.Transport.seconds;
+            if (current > total) current = total;
+            document.getElementById('time-display').innerText = `${formatTime(current)} / ${formatTime(total)}`;
 
-            if (viewMode === 'PC') drawPCMode();
-            else drawMobileMode();
-
-            if (isPlaying && midiData) {
-                updateSheet(Tone.Transport.seconds);
-                checkWaitMode();
-            }
-        } catch (error) {
-            // Anti-Crash: Just log it and keep looping
-            console.error("Draw Loop Error (Recovered):", error);
-        }
-        
+            if (isPlaying && midiData) { updateSheet(Tone.Transport.seconds); checkWaitMode(); }
+            else if (midiData) { updateSheet(Tone.Transport.seconds); } 
+        } catch (e) { console.error(e); }
         requestAnimationFrame(draw);
     }
 
     function drawMobileMode() {
         const rowH = canvas.height / 4;
         [ROWS.LOW, ROWS.MID, ROWS.HIGH].forEach((rowKeys, rIdx) => {
-            let slotW = canvas.width / rowKeys.length;
-            let startY = canvas.height - (rowH * (rIdx+1));
-            let rowColor = ROW_COLORS[rIdx];
-
-            ctx.fillStyle = (rIdx%2==0) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)";
-            ctx.fillRect(0, startY, canvas.width, rowH);
-            ctx.strokeStyle = rowColor; ctx.lineWidth = 2;
-            ctx.beginPath(); ctx.moveTo(0, startY); ctx.lineTo(canvas.width, startY); ctx.stroke();
-
-            ctx.save(); ctx.fillStyle = rowColor; ctx.font = "bold 12px Nunito"; ctx.textAlign = "left";
-            ctx.fillText(["LOW", "MID", "HIGH"][rIdx], 5, startY + 15); ctx.restore();
+            let slotW = canvas.width / rowKeys.length; let startY = canvas.height - (rowH * (rIdx+1)); let rowColor = ROW_COLORS[rIdx];
+            ctx.fillStyle = (rIdx%2==0) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)"; ctx.fillRect(0, startY, canvas.width, rowH);
+            ctx.strokeStyle = rowColor; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, startY); ctx.lineTo(canvas.width, startY); ctx.stroke();
+            ctx.save(); ctx.fillStyle = rowColor; ctx.font = "bold 12px Nunito"; ctx.textAlign = "left"; ctx.fillText(["LOW", "MID", "HIGH"][rIdx], 5, startY + 15); ctx.restore();
 
             rowKeys.forEach((pitch, sIdx) => {
                 let info = KEY_INFO[pitch];
-                if (!info) return;
-
-                let x = sIdx * slotW;
-                let y = startY + (rowH * 0.25);
-                let w = slotW; let h = rowH * 0.7;
-                
+                if(!info) return;
+                let x = sIdx * slotW; let y = startY + (rowH * 0.25); let w = slotW; let h = rowH * 0.7;
                 let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
-                let isWaiting = waitingForPitches.has(pitch);
-                let cx = x + w/2; let cy = y + h/2;
+                let isWaiting = waitingForPitches.has(pitch); let cx = x + w/2; let cy = y + h/2;
                 
                 ctx.beginPath();
-                if(info.style === 'w') roundRectPath(ctx, x+2, y, w-4, h, 12);
-                else ctx.arc(cx, cy, Math.min(w,h)/2.5, 0, Math.PI*2);
+                if(info.style === 'w') roundRectPath(ctx, x+2, y, w-4, h, 12); else ctx.arc(cx, cy, Math.min(w,h)/2.5, 0, Math.PI*2);
 
-                if (pitch === wrongKeyFeedback) {
-                    ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000";
-                } else if(isPressed) {
-                    ctx.shadowBlur = 20; ctx.shadowColor = rowColor; ctx.fillStyle = rowColor;
-                } else if (isWaiting) {
-                    let alpha = (Math.sin(Date.now() / 100) + 1) / 2 * 0.6 + 0.2;
-                    ctx.fillStyle = `rgba(255, 71, 87, ${alpha})`;
-                } else {
-                    ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ece5d8" : "#2d2d37");
-                }
+                if (pitch === wrongKeyFeedback) { ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000"; } 
+                else if(isPressed) { ctx.shadowBlur = 20; ctx.shadowColor = rowColor; ctx.fillStyle = rowColor; } 
+                else if (isWaiting) { let a=(Math.sin(Date.now()/100)+1)/2*0.6+0.2; ctx.fillStyle = `rgba(255, 71, 87, ${a})`; } 
+                else { ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ffffff" : "#2d2d37"); }
                 ctx.fill();
 
-                if (pitch !== wrongKeyFeedback) {
-                    if(isWaiting) { ctx.lineWidth=3; ctx.strokeStyle="#ff4757"; ctx.stroke(); }
-                    else if(info.style==='b') { ctx.lineWidth=2; ctx.strokeStyle="#ece5d8"; ctx.stroke(); }
-                }
-
+                if (pitch !== wrongKeyFeedback) { if(isWaiting) { ctx.lineWidth=3; ctx.strokeStyle="#ff4757"; ctx.stroke(); } else if(info.style==='b') { ctx.lineWidth=2; ctx.strokeStyle="#ffffff"; ctx.stroke(); } }
                 ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#1a1a24" : "#fff");
                 if(isWaiting && !isPressed) ctx.fillStyle = "#fff";
-                
-                ctx.font = info.style==='w' ? "bold 24px Nunito" : "bold 16px Nunito"; 
-                ctx.textAlign = "center";
-                ctx.fillText(info.charMobile, cx, cy + 8);
-                
-                ctx.shadowBlur = 0;
+                ctx.font = info.style==='w' ? "bold 24px Nunito" : "bold 16px Nunito"; ctx.textAlign = "center"; ctx.fillText(info.charMobile, cx, cy + 8); ctx.shadowBlur = 0;
             });
         });
     }
 
     function drawPCMode() {
-        const slotW = canvas.width / MAX_SLOTS_PC;
-        const hitY = canvas.height - 100;
+        const slotW = canvas.width / MAX_SLOTS_PC; const hitY = canvas.height - 100;
+        
+        // *** NEW WHITE HIT LINE FOR PC ***
+        ctx.shadowBlur = 10; ctx.shadowColor = "rgba(255, 255, 255, 0.7)"; 
+        ctx.strokeStyle = "#ffffff"; ctx.lineWidth = 2;
+        ctx.beginPath(); ctx.moveTo(0, hitY); ctx.lineTo(canvas.width, hitY); ctx.stroke(); 
+        ctx.shadowBlur = 0; 
 
-        if (midiData && isPlaying) {
+        if (midiData) {
              const now = Tone.Transport.seconds;
              playGroups.forEach(group => { 
                  let timeDiff = group.time - now;
-                 if (timeDiff > -0.2 && timeDiff < 3.0) {
+                 if (timeDiff > -10.0 && timeDiff < 3.0) {
                      group.notes.forEach(note => {
                          let info = getSmartInfo(note.pitch);
                          if(info && info.slotGlobal !== undefined){
-                             let x = info.slotGlobal * slotW;
-                             let y = hitY - (timeDiff * 400); 
-                             
-                             // *** FIXED LONG NOTE VISUAL ***
-                             // Calculate tail length based on duration
-                             let h = Math.max(20, note.duration * 400); 
+                             if (trackMode === 'MELODY' && info.row === 0) ctx.globalAlpha = 0.1; else ctx.globalAlpha = 1.0;
 
+                             let x = info.slotGlobal * slotW; let y = hitY - (timeDiff * 400); 
+                             let h = Math.max(20, note.duration * 250); 
                              ctx.fillStyle = ROW_COLORS[info.row];
                              if (y >= hitY - 10 && y <= hitY + 10) ctx.fillStyle = "#fff";
-                             
-                             // Draw note rect
-                             if (y - h < canvas.height) { // Simple optimization
-                                 ctx.fillRect(x + 2, y - h, slotW - 4, h);
-                             }
+                             if (y - h < canvas.height) ctx.fillRect(x + 2, y - h, slotW - 4, h);
+                             ctx.globalAlpha = 1.0;
                          }
                      });
                  }
              });
         }
-
         for (let p in KEY_INFO) {
             let pitch = parseInt(p); let info = KEY_INFO[p];
-            // Safety Check
-            if(!info) continue; 
-
+            if(!info) continue;
             let x = info.slotGlobal * slotW; let y = hitY; let w = slotW; let h = 80;
-            
             let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
-            let isWaiting = waitingForPitches.has(pitch); 
-            let color = ROW_COLORS[info.row];
+            let isWaiting = waitingForPitches.has(pitch); let color = ROW_COLORS[info.row];
 
             if (pitch === wrongKeyFeedback) { ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000"; } 
             else if(isPressed) { ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fillStyle = color; } 
-            else if (isWaiting) { 
-                let a=(Math.sin(Date.now()/100)+1)/2*0.5+0.2; 
-                ctx.fillStyle = `rgba(255, 71, 87, ${a})`; 
-                ctx.strokeStyle = "#ff4757"; ctx.lineWidth=2; ctx.strokeRect(x+1,y,w-2,h); 
-            } else { 
-                ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ece5d8" : "#2d2d37"); 
-            }
+            else if (isWaiting) { let a=(Math.sin(Date.now()/100)+1)/2*0.5+0.2; ctx.fillStyle = `rgba(255, 71, 87, ${a})`; ctx.strokeStyle = "#ff4757"; ctx.lineWidth=2; ctx.strokeRect(x+1,y,w-2,h); } 
+            else { ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ffffff" : "#2d2d37"); }
             
-            if(pitch !== wrongKeyFeedback) { roundRect(ctx, x+1, y, w-2, h, 6); ctx.fill(); }
-            else { ctx.fillRect(x+1,y,w-2,h); }
+            if(pitch !== wrongKeyFeedback) { 
+                ctx.beginPath();
+                roundRectPath(ctx, x+1, y, w-2, h, 6);
+                ctx.closePath();
+                ctx.fill(); 
+            } else { ctx.fillRect(x+1,y,w-2,h); }
             
-            ctx.shadowBlur = 0; 
-            ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#333" : "#aaa");
-            if(isWaiting && !isPressed) ctx.fillStyle = "#fff"; 
-            ctx.font = "bold 14px Nunito"; ctx.textAlign = "center"; 
-            ctx.fillText(info.charPC, x + w/2, y + 45);
+            ctx.shadowBlur = 0; ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#333" : "#aaa");
+            if(isWaiting && !isPressed) ctx.fillStyle = "#fff"; ctx.font = "bold 14px Nunito"; ctx.textAlign = "center"; ctx.fillText(info.charPC, x + w/2, y + 45);
         }
     }
 
-    function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); roundRectPath(ctx,x,y,w,h,r); ctx.closePath(); }
     function roundRectPath(ctx, x, y, width, height, radius) {
-        ctx.moveTo(x + radius, y); ctx.lineTo(x + width - radius, y);
-        ctx.quadraticCurveTo(x + width, y, x + width, y + radius); ctx.lineTo(x + width, y + height - radius);
-        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height);
-        ctx.lineTo(x + radius, y + height); ctx.quadraticCurveTo(x, y + height, x, y + height - radius);
-        ctx.lineTo(x, y + radius); ctx.quadraticCurveTo(x, y, x + radius, y);
+        ctx.moveTo(x + radius, y); ctx.lineTo(x + width - radius, y); ctx.quadraticCurveTo(x + width, y, x + width, y + radius); ctx.lineTo(x + width, y + height - radius);
+        ctx.quadraticCurveTo(x + width, y + height, x + width - radius, y + height); ctx.lineTo(x + radius, y + height); ctx.quadraticCurveTo(x, y + height, x, y + height - radius); ctx.lineTo(x, y + radius); ctx.quadraticCurveTo(x, y, x + radius, y);
     }
 
-    // --- 6. INPUT & LOGIC ---
     function getPitchFromXY(x, y) {
-        const rect = canvas.getBoundingClientRect();
-        const rX = (x - rect.left) * (canvas.width / rect.width);
-        const rY = (y - rect.top) * (canvas.height / rect.height);
-        
+        const rect = canvas.getBoundingClientRect(); const rX = (x - rect.left) * (canvas.width / rect.width); const rY = (y - rect.top) * (canvas.height / rect.height);
         if (viewMode === 'PC') {
             const hitH = 150; if (rY < canvas.height - hitH) return null;
             const slotW = canvas.width / MAX_SLOTS_PC; const slot = Math.floor(rX / slotW);
             for (let p in KEY_INFO) { if (KEY_INFO[p].slotGlobal === slot) return parseInt(p); }
         } else {
             const rowH = canvas.height / 4; let rowIdx = -1;
-            if (rY > canvas.height - rowH) rowIdx = 0;
-            else if (rY > canvas.height - rowH * 2) rowIdx = 1;
-            else if (rY > canvas.height - rowH * 3) rowIdx = 2;
+            if (rY > canvas.height - rowH) rowIdx = 0; else if (rY > canvas.height - rowH * 2) rowIdx = 1; else if (rY > canvas.height - rowH * 3) rowIdx = 2;
             if (rowIdx === -1) return null;
             let rowKeys = (rowIdx === 0) ? ROWS.LOW : (rowIdx === 1) ? ROWS.MID : ROWS.HIGH;
             const slotW = canvas.width / rowKeys.length; const slot = Math.floor(rX / slotW);
@@ -513,37 +628,20 @@
     function playNote(pitch) {
         if (!activeTouches.has(pitch)) {
             activeTouches.add(pitch);
-            
             if (soundMode === 'WAIT' && waitingForPitches.size > 0) {
                 if (waitingForPitches.has(pitch)) {
-                    sampler.triggerAttack(Tone.Frequency(pitch, "midi").toNote());
-                    Tone.Transport.start(); 
-                    isWaitingState = false; 
-                    nextGroupIndex++; waitingForPitches.clear(); 
-                    document.getElementById('statusText').innerText = "PLAYING...";
-                    document.getElementById('statusText').style.color = "#00ff88";
-                    
-                    let info = KEY_INFO[pitch];
-                    if(info) addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
-                } else {
-                    wrongKeyFeedback = pitch; setTimeout(() => { wrongKeyFeedback = null; }, 300);
-                }
+                    sampler.triggerAttack(Tone.Frequency(pitch, "midi").toNote()); Tone.Transport.start(); isWaitingState = false; nextGroupIndex++; waitingForPitches.clear(); 
+                    document.getElementById('statusText').innerText = "PLAYING..."; document.getElementById('statusText').style.color = "#00ff88";
+                    let info = KEY_INFO[pitch]; addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
+                } else { wrongKeyFeedback = pitch; setTimeout(() => { wrongKeyFeedback = null; }, 300); }
             } else if (soundMode === 'MANUAL') {
                 sampler.triggerAttack(Tone.Frequency(pitch, "midi").toNote());
-                let info = KEY_INFO[pitch];
-                if(info) addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
+                let info = KEY_INFO[pitch]; addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
             }
         }
     }
-    
-    function stopNote(pitch) {
-        if (activeTouches.has(pitch)) {
-            activeTouches.delete(pitch);
-            if(soundMode !== 'AUTO') sampler.triggerRelease(Tone.Frequency(pitch, "midi").toNote());
-        }
-    }
+    function stopNote(pitch) { if (activeTouches.has(pitch)) { activeTouches.delete(pitch); if(soundMode !== 'AUTO') sampler.triggerRelease(Tone.Frequency(pitch, "midi").toNote()); } }
 
-    // Events
     canvas.addEventListener('mousedown', async (e) => { await Tone.start(); let p = getPitchFromXY(e.clientX, e.clientY); if(p) playNote(p); });
     canvas.addEventListener('mouseup', () => { activeTouches.forEach(p => stopNote(p)); });
     window.addEventListener('keydown', async (e) => { if(e.repeat) return; await Tone.start(); const k = e.key.toLowerCase(); if(KEY_MAP_PC[k]) playNote(KEY_MAP_PC[k]); });
@@ -551,86 +649,45 @@
     canvas.addEventListener('touchstart', async (e) => { e.preventDefault(); await Tone.start(); for (let i=0; i<e.changedTouches.length; i++) { let p = getPitchFromXY(e.changedTouches[i].clientX, e.changedTouches[i].clientY); if(p) playNote(p); } }, {passive:false});
     canvas.addEventListener('touchend', (e) => { e.preventDefault(); activeTouches.forEach(p => stopNote(p)); });
 
-    // --- 7. MAIN ---
     document.getElementById('fileInput').addEventListener('change', async (e) => {
         const file = e.target.files[0]; if(!file) return;
         const ab = await file.arrayBuffer(); midiData = new Midi(ab);
-        Tone.Transport.stop(); Tone.Transport.cancel();
-        
-        generateSheetMusic(midiData);
-        nextGroupIndex = 0; waitingForPitches.clear(); activeAutoNotes.clear(); isWaitingState = false;
-
-        midiData.tracks.forEach(track => {
-            track.notes.forEach(note => {
-                Tone.Transport.schedule((time) => {
-                    if (soundMode === 'AUTO') {
-                        sampler.triggerAttackRelease(note.name, note.duration, time);
-                        
-                        // VISUALS FOR AUTO MODE
-                        Tone.Draw.schedule(() => {
-                            let info = getSmartInfo(note.midi);
-                            // Find matching mapped key
-                            for(let p in KEY_INFO) {
-                                if(KEY_INFO[p] === info) {
-                                    let pitch = parseInt(p);
-                                    activeAutoNotes.add(pitch);
-                                    // Add to history if mobile
-                                    addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
-                                    break;
-                                }
-                            }
-                        }, time);
-                        
-                        Tone.Draw.schedule(() => {
-                            let info = getSmartInfo(note.midi);
-                            for(let p in KEY_INFO) { if(KEY_INFO[p] === info) { activeAutoNotes.delete(parseInt(p)); break; } }
-                        }, time + note.duration);
-                    }
-                }, note.time);
-            });
-        });
-        
-        document.getElementById('statusText').innerText = "Ready: " + file.name;
-        document.getElementById('statusText').style.color = "#00ff88";
-        document.getElementById('btnPlay').innerText = "PLAY";
-        // Disabled removed from HTML, logic here is fine
-        isPlaying = false;
+        restartGame();
     });
 
-    document.getElementById('btnPlay').addEventListener('click', async () => {
-        if(!midiData) return alert("Load MIDI first");
-        await Tone.start();
-        if (Tone.Transport.state === 'started') {
-            Tone.Transport.pause(); isPlaying = false;
-            document.getElementById('btnPlay').innerText = "RESUME";
-        } else {
-            Tone.Transport.start(); isPlaying = true;
-            document.getElementById('btnPlay').innerText = "PAUSE";
-        }
-    });
+    document.getElementById('btnPlay').addEventListener('click', async () => { if(!midiData) return alert("Load MIDI first"); await Tone.start(); if (Tone.Transport.state === 'started') { Tone.Transport.pause(); isPlaying = false; document.getElementById('btnPlay').innerText = "RESUME"; } else { Tone.Transport.start(); isPlaying = true; document.getElementById('btnPlay').innerText = "PAUSE"; } });
+    document.getElementById('btnPlayMode').addEventListener('click', (e) => { let modes = ['AUTO', 'MANUAL', 'WAIT']; let nextIdx = (modes.indexOf(soundMode) + 1) % modes.length; soundMode = modes[nextIdx]; e.target.innerText = "Mode: " + soundMode; e.target.setAttribute('data-mode', soundMode); if(soundMode === 'WAIT') { Tone.Transport.stop(); isPlaying = false; document.getElementById('btnPlay').innerText = "START WAIT"; nextGroupIndex = 0; waitingForPitches.clear(); isWaitingState = false; } });
+    document.getElementById('btnViewMode').addEventListener('click', (e) => { viewMode = (viewMode === 'MOBILE') ? 'PC' : 'MOBILE'; e.target.innerText = "View: " + viewMode; const hist = document.getElementById('history-bar'); hist.style.display = (viewMode === 'MOBILE') ? 'flex' : 'none'; if(midiData) generateSheetMusic(midiData); });
+    document.getElementById('btnTrackMode').addEventListener('click', (e) => { trackMode = (trackMode === 'ALL') ? 'MELODY' : 'ALL'; e.target.innerText = "Track: " + trackMode; if(midiData) restartGame(); });
 
-    document.getElementById('btnPlayMode').addEventListener('click', (e) => {
-        let modes = ['AUTO', 'MANUAL', 'WAIT'];
-        let nextIdx = (modes.indexOf(soundMode) + 1) % modes.length;
-        soundMode = modes[nextIdx];
-        e.target.innerText = "Mode: " + soundMode;
-        e.target.setAttribute('data-mode', soundMode);
-        if(soundMode === 'WAIT') {
-             Tone.Transport.stop(); isPlaying = false; 
-             document.getElementById('btnPlay').innerText = "START WAIT";
-             nextGroupIndex = 0; waitingForPitches.clear(); isWaitingState = false;
-        }
-    });
-
-    document.getElementById('btnViewMode').addEventListener('click', (e) => {
-        viewMode = (viewMode === 'MOBILE') ? 'PC' : 'MOBILE';
-        e.target.innerText = "View: " + viewMode;
-        const hist = document.getElementById('history-bar');
-        hist.style.display = (viewMode === 'MOBILE') ? 'flex' : 'none';
-        if(midiData) generateSheetMusic(midiData);
-    });
+    // Modals
+    const btnSettings = document.getElementById('btnSettings');
+    const settingsModal = document.getElementById('settings-modal');
+    btnSettings.addEventListener('click', () => { settingsModal.style.display = (settingsModal.style.display === 'block') ? 'none' : 'block'; });
     
-    // Init state
+    document.getElementById('volSlider').addEventListener('input', (e) => { let v = parseInt(e.target.value); sampler.volume.value = v; document.getElementById('volVal').innerText = v; });
+    document.getElementById('transUp').addEventListener('click', () => { globalTranspose++; updateTransVal(); restartGame(); });
+    document.getElementById('transDown').addEventListener('click', () => { globalTranspose--; updateTransVal(); restartGame(); });
+    function updateTransVal() { document.getElementById('transVal').innerText = (globalTranspose > 0 ? "+" : "") + globalTranspose; }
+
+    const helpModal = document.getElementById('helpModal');
+    const btnHelp = document.getElementById('btnHelp');
+    const closeHelp = document.getElementById('closeHelp');
+    btnHelp.onclick = () => helpModal.style.display = "flex";
+    closeHelp.onclick = () => helpModal.style.display = "none";
+
+    const creditModal = document.getElementById('creditModal');
+    const btnCredit = document.getElementById('btnCredit');
+    const closeCredit = document.getElementById('closeCredit');
+    btnCredit.onclick = () => creditModal.style.display = "flex";
+    closeCredit.onclick = () => creditModal.style.display = "none";
+
+    window.onclick = (event) => { 
+        if (event.target == helpModal) helpModal.style.display = "none"; 
+        if (event.target == creditModal) creditModal.style.display = "none";
+    };
+
+    // Init
     document.getElementById('history-bar').style.display = 'flex';
     resize();
     draw();
