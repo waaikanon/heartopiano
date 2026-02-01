@@ -3,7 +3,9 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <meta name="apple-mobile-web-app-capable" content="yes"> <meta name="mobile-web-app-capable" content="yes"> <title>Heartopiano</title>
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <title>Heartopiano</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -22,7 +24,7 @@
             user-select: none;
         }
 
-        /* TIME DISPLAY (Floating) */
+        /* TIME DISPLAY */
         #time-display {
             position: absolute; top: 10px; right: 15px;
             font-family: 'Roboto Mono', monospace; font-size: 14px; font-weight: bold;
@@ -34,14 +36,14 @@
 
         /* SHEET MUSIC */
         #sheet-container {
-            height: 160px; /* Default Portrait Height */
+            height: 160px;
             background: #20202a;
             border-bottom: 2px solid #444;
             display: flex; align-items: center;
             overflow-x: auto; white-space: nowrap;
             padding: 0 50% 0 50px; position: relative;
             scrollbar-width: none; flex-shrink: 0;
-            cursor: grab; transition: height 0.3s; /* Smooth resize */
+            cursor: grab; transition: height 0.3s;
         }
         #sheet-container:active { cursor: grabbing; }
         
@@ -92,6 +94,15 @@
         #btnHelp { background: #00b894; border-color: #55efc4; font-size: 14px; padding: 6px 10px; }
         #btnCredit { background: #ff7675; border-color: #fab1a0; color: #fff; font-size: 14px; padding: 6px 10px; }
         #btnTrackMode { background: #e84393; border-color: #fd79a8; color: #fff; }
+        
+        /* REC BUTTON STYLE */
+        #btnRecord { background: #d63031; border-color: #ff7675; color: #fff; min-width: 60px; }
+        #btnRecord.recording { 
+            background: #ff0000; 
+            box-shadow: 0 0 10px #ff0000; 
+            animation: pulse 1s infinite;
+        }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
 
         /* MODALS */
         .modal {
@@ -101,7 +112,7 @@
         .modal-content {
             background: #2d2d3a; padding: 20px; border-radius: 12px; border: 2px solid #6c5ce7;
             max-width: 90%; width: 350px; color: #eee; font-family: 'Nunito', sans-serif; position: relative;
-            max-height: 80vh; overflow-y: auto; /* Scrollable modal on small screens */
+            max-height: 80vh; overflow-y: auto;
         }
         .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
         .close-btn:hover { color: #fff; }
@@ -151,19 +162,18 @@
         #canvas-container {
             flex-grow: 1; position: relative;
             background: linear-gradient(180deg, #15151a 0%, #1a1a24 100%);
-            min-height: 100px; /* Allow smaller height in landscape */
+            min-height: 100px;
         }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         
         #statusText { font-size: 12px; color: #ffd700; margin-left: auto; font-weight: bold; }
         .ready { color: #00ff88 !important; }
 
-        /* --- LANDSCAPE OPTIMIZATIONS --- */
         @media (orientation: landscape) and (max-height: 600px) {
-            #sheet-container { height: 90px; } /* Compact Sheet */
+            #sheet-container { height: 90px; }
             .sheet-group { min-width: 35px; padding: 2px 5px; }
             .char-note { font-size: 18px; }
-            #controls { height: 40px; padding: 2px 15px; } /* Compact Controls */
+            #controls { height: 40px; padding: 2px 15px; }
             #time-display { top: 5px; right: 10px; font-size: 12px; padding: 2px 8px; }
             button { padding: 4px 8px; font-size: 11px; }
             #settings-modal { top: 45px; }
@@ -184,7 +194,7 @@
 <div id="controls">
     <input type="file" id="fileInput" accept=".mid">
     <button id="btnPlay">PLAY</button>
-    <button id="btnPlayMode" data-mode="AUTO">Mode: AUTO</button>
+    <button id="btnRecord">🔴 REC</button> <button id="btnPlayMode" data-mode="AUTO">Mode: AUTO</button>
     <button id="btnTrackMode">Track: ALL</button>
     <button id="btnSettings">⚙️</button>
     <button id="btnHelp">❓</button>
@@ -213,12 +223,10 @@
     <div class="modal-content">
         <span class="close-btn" id="closeHelp">&times;</span>
         <h2 style="color:#00b894; border-bottom:1px solid #444; padding-bottom:10px; margin-top:0;">🎹 How to Play</h2>
-        <h3 style="color:#ffc107; margin-bottom:5px;">1. Track Mode</h3>
-        <p style="font-size:13px; color:#ccc; margin-top:0;">• <b>ALL:</b> Play everything.<br>• <b>MELODY:</b> Hides/Mutes the low row so you can focus on melody.</p>
-        <h3 style="color:#ffc107; margin-bottom:5px;">2. Play Modes</h3>
-        <p style="font-size:13px; color:#ccc; margin-top:0;">• <b>AUTO:</b> Watch & Listen<br>• <b>MANUAL:</b> Play by yourself<br>• <b>WAIT:</b> Game waits for you</p>
-        <h3 style="color:#ffc107; margin-bottom:5px;">3. Navigation</h3>
-        <p style="font-size:13px; color:#ccc; margin-top:0;">• <b>Swipe/Drag</b> on the note area to seek song position!</p>
+        <h3 style="color:#d63031; margin-bottom:5px;">• Recording (New!)</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;">Press <b>🔴 REC</b> to start. Play your song. Press <b>STOP</b> to save as MIDI file.</p>
+        <h3 style="color:#ffc107; margin-bottom:5px;">• Modes</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;"><b>AUTO:</b> Listen | <b>MANUAL:</b> Play | <b>WAIT:</b> Practice</p>
     </div>
 </div>
 
@@ -306,6 +314,12 @@
     let globalTranspose = 0;
     let isScrubbing = false; 
     
+    // RECORDER STATE
+    let isRecording = false;
+    let recordStartTime = 0;
+    let activeRecordingNotes = {}; // { pitch: startTime }
+    let recordedEvents = []; // { pitch, startTime, duration }
+
     const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
 
     // --- 3. HELPER FUNCTIONS ---
@@ -366,7 +380,6 @@
         return KEY_INFO[target];
     }
 
-    // *** FIX: Always show History (Removed display toggle) ***
     function addToHistory(char, row) {
         const bar = document.getElementById('history-bar');
         const item = document.createElement('span'); item.className = 'history-item';
@@ -412,7 +425,53 @@
         });
     }
 
-    // --- 4. SCRUBBING LOGIC ---
+    // --- 4. RECORDER FUNCTIONS ---
+    function toggleRecording() {
+        if (!isRecording) {
+            // Start Recording
+            isRecording = true;
+            recordStartTime = Tone.now();
+            activeRecordingNotes = {};
+            recordedEvents = [];
+            document.getElementById('btnRecord').innerText = "⏹ STOP";
+            document.getElementById('btnRecord').classList.add('recording');
+        } else {
+            // Stop Recording & Save
+            isRecording = false;
+            document.getElementById('btnRecord').innerText = "🔴 REC";
+            document.getElementById('btnRecord').classList.remove('recording');
+            saveMidi();
+        }
+    }
+
+    function saveMidi() {
+        if (recordedEvents.length === 0) { alert("No notes recorded!"); return; }
+        
+        // Use Tone.Midi to generate file
+        const midi = new Midi();
+        const track = midi.addTrack();
+        
+        recordedEvents.forEach(evt => {
+            track.addNote({
+                midi: evt.pitch,
+                time: evt.startTime,
+                duration: evt.duration
+            });
+        });
+
+        // Download
+        const array = midi.toArray();
+        const blob = new Blob([array], { type: "audio/midi" });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement("a");
+        a.href = url;
+        a.download = "heartopia_recording.mid";
+        document.body.appendChild(a);
+        a.click();
+        document.body.removeChild(a);
+    }
+
+    // --- 5. SCRUBBING LOGIC ---
     const sheetContainer = document.getElementById('sheet-container');
     let startX, startScrollLeft;
 
@@ -452,7 +511,7 @@
         }
     }
 
-    // --- 5. ENGINE ---
+    // --- 6. ENGINE ---
     function updateSheet(currentTime) {
         if (isScrubbing) return; 
 
@@ -627,6 +686,11 @@
     }
 
     function playNote(pitch) {
+        // RECORDER LOGIC
+        if (isRecording) {
+            activeRecordingNotes[pitch] = Tone.now();
+        }
+
         if (!activeTouches.has(pitch)) {
             activeTouches.add(pitch);
             if (soundMode === 'WAIT' && waitingForPitches.size > 0) {
@@ -641,7 +705,25 @@
             }
         }
     }
-    function stopNote(pitch) { if (activeTouches.has(pitch)) { activeTouches.delete(pitch); if(soundMode !== 'AUTO') sampler.triggerRelease(Tone.Frequency(pitch, "midi").toNote()); } }
+    
+    function stopNote(pitch) {
+        // RECORDER LOGIC (Stop)
+        if (isRecording && activeRecordingNotes[pitch]) {
+            const startTime = activeRecordingNotes[pitch];
+            const duration = Tone.now() - startTime;
+            recordedEvents.push({
+                pitch: pitch,
+                startTime: startTime - recordStartTime, // Relative time
+                duration: duration
+            });
+            delete activeRecordingNotes[pitch];
+        }
+
+        if (activeTouches.has(pitch)) {
+            activeTouches.delete(pitch);
+            if(soundMode !== 'AUTO') sampler.triggerRelease(Tone.Frequency(pitch, "midi").toNote());
+        }
+    }
 
     canvas.addEventListener('mousedown', async (e) => { await Tone.start(); let p = getPitchFromXY(e.clientX, e.clientY); if(p) playNote(p); });
     canvas.addEventListener('mouseup', () => { activeTouches.forEach(p => stopNote(p)); });
@@ -661,10 +743,12 @@
     document.getElementById('btnViewMode').addEventListener('click', (e) => { 
         viewMode = (viewMode === 'MOBILE') ? 'PC' : 'MOBILE'; 
         e.target.innerText = "View: " + viewMode; 
-        // *** FIX: REMOVED HISTORY TOGGLE ***
         if(midiData) generateSheetMusic(midiData); 
     });
     document.getElementById('btnTrackMode').addEventListener('click', (e) => { trackMode = (trackMode === 'ALL') ? 'MELODY' : 'ALL'; e.target.innerText = "Track: " + trackMode; if(midiData) restartGame(); });
+    
+    // REC BUTTON EVENT
+    document.getElementById('btnRecord').addEventListener('click', toggleRecording);
 
     // Modals
     const btnSettings = document.getElementById('btnSettings');
