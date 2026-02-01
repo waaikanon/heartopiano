@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
-    <title>Heartopia V18 Sync Fix</title>
+    <title>Heartopia V32 Invincible</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -22,7 +22,7 @@
             user-select: none;
         }
 
-        /* --- SHEET MUSIC --- */
+        /* SHEET MUSIC */
         #sheet-container {
             height: 160px;
             background: #20202a;
@@ -33,7 +33,8 @@
             white-space: nowrap;
             padding: 0 50% 0 50px;
             position: relative;
-            scrollbar-width: none; /* ซ่อน Scrollbar ให้สะอาดตา */
+            scrollbar-width: none;
+            flex-shrink: 0;
         }
         #sheet-marker {
             position: absolute; left: 50px; top: 0; bottom: 0; width: 4px;
@@ -58,11 +59,12 @@
         }
         .group-passed { opacity: 0.2; filter: grayscale(100%); transform: scale(0.9); }
 
-        /* --- CONTROLS --- */
+        /* CONTROLS */
         #controls {
             padding: 5px 15px; background: rgba(30, 30, 40, 0.98);
             display: flex; gap: 10px; align-items: center;
             height: 50px; border-bottom: 1px solid #444; z-index: 20;
+            flex-shrink: 0;
         }
         button, input[type=file]::file-selector-button {
             padding: 6px 12px; background: #4a4a6a; color: white;
@@ -75,18 +77,12 @@
         button[data-mode="WAIT"] { background: #ff4757; color: #fff; box-shadow: 0 0 5px #ff4757; }
         button.active { background: #fff; color: #000; border-color: #00d2ff; }
 
-        /* --- HISTORY BAR --- */
+        /* HISTORY BAR */
         #history-bar {
-            height: 35px;
-            background: rgba(0, 0, 0, 0.5);
-            display: flex;
-            align-items: center;
-            justify-content: flex-end; /* Note ใหม่เข้าขวา */
-            padding: 0 15px;
-            overflow: hidden;
-            border-bottom: 1px solid #333;
-            position: relative;
-            z-index: 15;
+            height: 35px; background: rgba(0, 0, 0, 0.5);
+            display: flex; align-items: center; justify-content: flex-end;
+            padding: 0 15px; overflow: hidden; border-bottom: 1px solid #333; position: relative; z-index: 15;
+            flex-shrink: 0;
         }
         .history-item {
             font-family: 'Nunito', sans-serif; font-weight: bold; font-size: 14px;
@@ -95,16 +91,15 @@
             animation: fadeOut 4s forwards; white-space: nowrap;
         }
         @keyframes fadeOut {
-            0% { opacity: 1; transform: translateX(10px); }
-            10% { transform: translateX(0); }
-            80% { opacity: 0.7; }
-            100% { opacity: 0; transform: translateX(-10px); }
+            0% { opacity: 1; transform: translateX(10px); } 10% { transform: translateX(0); }
+            80% { opacity: 0.7; } 100% { opacity: 0; transform: translateX(-10px); }
         }
 
-        /* --- CANVAS --- */
+        /* CANVAS */
         #canvas-container {
             flex-grow: 1; position: relative;
             background: linear-gradient(180deg, #15151a 0%, #1a1a24 100%);
+            min-height: 200px;
         }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         
@@ -122,8 +117,8 @@
 </div>
 
 <div id="controls">
-    <input type="file" id="fileInput" accept=".mid" disabled>
-    <button id="btnPlay" disabled>WAIT...</button>
+    <input type="file" id="fileInput" accept=".mid">
+    <button id="btnPlay">PLAY</button>
     <button id="btnPlayMode" data-mode="AUTO">Mode: AUTO</button>
     <button id="btnViewMode" class="active">View: MOBILE</button> 
     <span id="statusText">Loading...</span>
@@ -138,7 +133,7 @@
 </div>
 
 <script>
-    // --- 1. CONFIG ---
+    // --- 1. CONFIG & MAPPING ---
     const KEY_INFO = {};
     const KEY_MAP_PC = {}; 
     const ROWS = { LOW: [], MID: [], HIGH: [] };
@@ -157,6 +152,7 @@
         rowArr.push(pitch);
     }
 
+    // Define Keys
     addKey(48, ',', '1', 0, 'w'); addKey(49, 'L', '1#', 0, 'b'); addKey(50, '.', '2', 0, 'w'); 
     addKey(51, ';', '2#', 0, 'b'); addKey(52, '/', '3', 0, 'w'); addKey(53, 'O', '4', 0, 'b'); 
     addKey(54, '0', '4#', 0, 'b'); addKey(55, 'P', '5', 0, 'w'); addKey(56, '-', '5#', 0, 'b'); 
@@ -182,9 +178,6 @@
         onload: () => {
             document.getElementById('statusText').innerText = "Sound Ready!";
             document.getElementById('statusText').classList.add('ready');
-            document.getElementById('fileInput').disabled = false;
-            document.getElementById('btnPlay').disabled = false;
-            document.getElementById('btnPlay').innerText = "PLAY";
         }
     }).toDestination();
     const reverb = new Tone.Reverb({ decay: 1.5, wet: 0.2 }).toDestination();
@@ -195,18 +188,42 @@
     let viewMode = 'MOBILE';
     let soundMode = 'AUTO'; 
     let activeTouches = new Set(); 
-    let activeAutoNotes = new Set(); // For visual feedback in Auto mode
+    let activeAutoNotes = new Set(); 
     let sheetElements = [];
     let playGroups = []; 
     let nextGroupIndex = 0;
     let waitingForPitches = new Set(); 
-    let isWaitingState = false; // Flag to force sheet update
+    let isWaitingState = false; 
     let wrongKeyFeedback = null; 
     
     const canvas = document.getElementById('gameCanvas');
     const ctx = canvas.getContext('2d');
 
-    // --- 3. SHEET MUSIC ---
+    // --- 3. HELPER LOGIC ---
+    function getSmartInfo(pitch) {
+        let target = pitch;
+        if (!KEY_INFO[target]) {
+             const keys = Object.keys(KEY_INFO).map(Number).sort((a,b)=>a-b);
+             if (keys.length === 0) return null; // Safety check
+             while(target < keys[0]) target += 12;
+             while(target > keys[keys.length-1]) target -= 12;
+             target = keys.reduce((prev, curr) => Math.abs(curr-target) < Math.abs(prev-target) ? curr : prev);
+        }
+        return KEY_INFO[target];
+    }
+
+    function addToHistory(char, row) {
+        if (viewMode !== 'MOBILE') return;
+        const bar = document.getElementById('history-bar');
+        const item = document.createElement('span');
+        item.className = 'history-item';
+        item.innerHTML = char; 
+        item.style.color = ROW_COLORS[row];
+        item.style.borderColor = ROW_COLORS[row];
+        bar.appendChild(item);
+        setTimeout(() => { if(item.parentNode) item.remove(); }, 4000);
+    }
+
     function generateSheetMusic(midi) {
         const container = document.getElementById('sheet-content');
         container.innerHTML = ""; sheetElements = [];
@@ -215,11 +232,13 @@
         midi.tracks.forEach(track => {
             track.notes.forEach(note => {
                 let info = getSmartInfo(note.midi);
-                allNotesRaw.push({ 
-                    time: note.time, pitch: note.midi, 
-                    char: viewMode==='MOBILE'? info.charMobile : info.charPC,
-                    row: info.row, duration: note.duration
-                });
+                if (info) { // Safety check
+                    allNotesRaw.push({ 
+                        time: note.time, pitch: note.midi, 
+                        char: viewMode==='MOBILE'? info.charMobile : info.charPC,
+                        row: info.row, duration: note.duration
+                    });
+                }
             });
         });
         allNotesRaw.sort((a, b) => a.time - b.time);
@@ -254,41 +273,15 @@
         const pad = document.createElement('div'); pad.style.width = "400px"; container.appendChild(pad);
     }
 
-    function getSmartInfo(pitch) {
-        let target = pitch;
-        if (!KEY_INFO[target]) {
-             const keys = Object.keys(KEY_INFO).map(Number).sort((a,b)=>a-b);
-             while(target < keys[0]) target += 12;
-             while(target > keys[keys.length-1]) target -= 12;
-             target = keys.reduce((prev, curr) => Math.abs(curr-target) < Math.abs(prev-target) ? curr : prev);
-        }
-        return KEY_INFO[target];
-    }
-
-    // --- 4. HISTORY BAR ---
-    function addToHistory(char, row) {
-        if (viewMode !== 'MOBILE') return;
-        const bar = document.getElementById('history-bar');
-        const item = document.createElement('span');
-        item.className = 'history-item';
-        item.innerHTML = char; // allows <small>#</small>
-        item.style.color = ROW_COLORS[row];
-        item.style.borderColor = ROW_COLORS[row];
-        bar.appendChild(item);
-        setTimeout(() => { if(item.parentNode) item.remove(); }, 4000);
-    }
-
-    // --- 5. RENDER LOOP (FIXED SYNC) ---
+    // --- 4. ENGINE ---
     function updateSheet(currentTime) {
         const container = document.getElementById('sheet-container');
         const markerOffset = 50;
         let targetIdx;
 
-        // **FIX: If Waiting, force target to the pending note**
         if (soundMode === 'WAIT' && isWaitingState) {
             targetIdx = nextGroupIndex;
         } else {
-            // Normal Time-based
             targetIdx = sheetElements.findIndex(e => e.time > currentTime);
             if (targetIdx === -1 && sheetElements.length > 0) targetIdx = sheetElements.length;
             if (targetIdx > 0) targetIdx--; 
@@ -311,21 +304,19 @@
         
         if (nextGroupIndex < playGroups.length) {
             let nextGroup = playGroups[nextGroupIndex];
-            // Pause before note arrives
             if (Tone.Transport.seconds >= nextGroup.time - 0.05) { 
                 Tone.Transport.pause();
-                isWaitingState = true; // Set flag for Sheet Update
-                
+                isWaitingState = true; 
                 waitingForPitches.clear();
                 nextGroup.notes.forEach(n => {
-                    for(let p in KEY_INFO) {
-                        if(KEY_INFO[p] === getSmartInfo(n.pitch)) { waitingForPitches.add(parseInt(p)); break; }
+                    let info = getSmartInfo(n.pitch);
+                    if(info) {
+                        for(let p in KEY_INFO) {
+                            if(KEY_INFO[p] === info) { waitingForPitches.add(parseInt(p)); break; }
+                        }
                     }
                 });
-                
-                // Force immediate sheet update to jump to next note
                 updateSheet(nextGroup.time);
-
                 document.getElementById('statusText').innerText = "WAITING FOR INPUT...";
                 document.getElementById('statusText').style.color = "#ff4757";
             }
@@ -333,22 +324,33 @@
     }
 
     function resize() {
-        canvas.width = canvas.parentElement.clientWidth;
-        canvas.height = canvas.parentElement.clientHeight;
+        if(canvas.parentElement) {
+            canvas.width = canvas.parentElement.clientWidth;
+            canvas.height = canvas.parentElement.clientHeight;
+        }
     }
     window.addEventListener('resize', resize);
-    resize();
-
+    
+    // *** THE INVINCIBLE DRAW LOOP ***
     function draw() {
-        ctx.fillStyle = "#1a1a24"; ctx.fillRect(0, 0, canvas.width, canvas.height);
+        // Safety check: Canvas dimensions
+        if(canvas.width === 0 || canvas.height === 0) resize();
 
-        if (viewMode === 'PC') drawPCMode();
-        else drawMobileMode();
+        try {
+            ctx.fillStyle = "#1a1a24"; ctx.fillRect(0, 0, canvas.width, canvas.height);
 
-        if (isPlaying && midiData) {
-            updateSheet(Tone.Transport.seconds);
-            checkWaitMode();
+            if (viewMode === 'PC') drawPCMode();
+            else drawMobileMode();
+
+            if (isPlaying && midiData) {
+                updateSheet(Tone.Transport.seconds);
+                checkWaitMode();
+            }
+        } catch (error) {
+            // Anti-Crash: Just log it and keep looping
+            console.error("Draw Loop Error (Recovered):", error);
         }
+        
         requestAnimationFrame(draw);
     }
 
@@ -369,15 +371,13 @@
 
             rowKeys.forEach((pitch, sIdx) => {
                 let info = KEY_INFO[pitch];
+                if (!info) return;
+
                 let x = sIdx * slotW;
                 let y = startY + (rowH * 0.25);
                 let w = slotW; let h = rowH * 0.7;
                 
-                // Visual Logic: Manual OR Auto Pressed
-                let isUserPressed = activeTouches.has(pitch);
-                let isAutoPressed = activeAutoNotes.has(pitch);
-                let isPressed = isUserPressed || isAutoPressed;
-                
+                let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
                 let isWaiting = waitingForPitches.has(pitch);
                 let cx = x + w/2; let cy = y + h/2;
                 
@@ -425,11 +425,22 @@
                  if (timeDiff > -0.2 && timeDiff < 3.0) {
                      group.notes.forEach(note => {
                          let info = getSmartInfo(note.pitch);
-                         let x = info.slotGlobal * slotW;
-                         let y = hitY - (timeDiff * 400); 
-                         let h = 20; ctx.fillStyle = ROW_COLORS[info.row];
-                         if (y >= hitY - 10 && y <= hitY + 10) ctx.fillStyle = "#fff";
-                         if (y < hitY) ctx.fillRect(x + 2, y - h, slotW - 4, h);
+                         if(info && info.slotGlobal !== undefined){
+                             let x = info.slotGlobal * slotW;
+                             let y = hitY - (timeDiff * 400); 
+                             
+                             // *** FIXED LONG NOTE VISUAL ***
+                             // Calculate tail length based on duration
+                             let h = Math.max(20, note.duration * 400); 
+
+                             ctx.fillStyle = ROW_COLORS[info.row];
+                             if (y >= hitY - 10 && y <= hitY + 10) ctx.fillStyle = "#fff";
+                             
+                             // Draw note rect
+                             if (y - h < canvas.height) { // Simple optimization
+                                 ctx.fillRect(x + 2, y - h, slotW - 4, h);
+                             }
+                         }
                      });
                  }
              });
@@ -437,19 +448,24 @@
 
         for (let p in KEY_INFO) {
             let pitch = parseInt(p); let info = KEY_INFO[p];
+            // Safety Check
+            if(!info) continue; 
+
             let x = info.slotGlobal * slotW; let y = hitY; let w = slotW; let h = 80;
-            let isUserPressed = activeTouches.has(pitch);
-            let isAutoPressed = activeAutoNotes.has(pitch);
-            let isPressed = isUserPressed || isAutoPressed;
-            let isWaiting = waitingForPitches.has(pitch); let color = ROW_COLORS[info.row];
+            
+            let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
+            let isWaiting = waitingForPitches.has(pitch); 
+            let color = ROW_COLORS[info.row];
 
             if (pitch === wrongKeyFeedback) { ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000"; } 
             else if(isPressed) { ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fillStyle = color; } 
-            else if (isWaiting) {
-                let alpha = (Math.sin(Date.now() / 100) + 1) / 2 * 0.5 + 0.2;
-                ctx.fillStyle = `rgba(255, 71, 87, ${alpha})`;
-                ctx.strokeStyle = "#ff4757"; ctx.lineWidth=2; ctx.strokeRect(x+1,y,w-2,h);
-            } else { ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ece5d8" : "#2d2d37"); }
+            else if (isWaiting) { 
+                let a=(Math.sin(Date.now()/100)+1)/2*0.5+0.2; 
+                ctx.fillStyle = `rgba(255, 71, 87, ${a})`; 
+                ctx.strokeStyle = "#ff4757"; ctx.lineWidth=2; ctx.strokeRect(x+1,y,w-2,h); 
+            } else { 
+                ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ece5d8" : "#2d2d37"); 
+            }
             
             if(pitch !== wrongKeyFeedback) { roundRect(ctx, x+1, y, w-2, h, 6); ctx.fill(); }
             else { ctx.fillRect(x+1,y,w-2,h); }
@@ -457,13 +473,12 @@
             ctx.shadowBlur = 0; 
             ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#333" : "#aaa");
             if(isWaiting && !isPressed) ctx.fillStyle = "#fff"; 
-            ctx.font = "bold 14px Nunito"; ctx.textAlign = "center";
+            ctx.font = "bold 14px Nunito"; ctx.textAlign = "center"; 
             ctx.fillText(info.charPC, x + w/2, y + 45);
         }
     }
 
-    function roundRect(ctx, x, y, width, height, radius) {
-        ctx.beginPath(); roundRectPath(ctx,x,y,w,h,r); ctx.closePath(); }
+    function roundRect(ctx, x, y, w, h, r) { ctx.beginPath(); roundRectPath(ctx,x,y,w,h,r); ctx.closePath(); }
     function roundRectPath(ctx, x, y, width, height, radius) {
         ctx.moveTo(x + radius, y); ctx.lineTo(x + width - radius, y);
         ctx.quadraticCurveTo(x + width, y, x + width, y + radius); ctx.lineTo(x + width, y + height - radius);
@@ -503,22 +518,20 @@
                 if (waitingForPitches.has(pitch)) {
                     sampler.triggerAttack(Tone.Frequency(pitch, "midi").toNote());
                     Tone.Transport.start(); 
-                    isWaitingState = false; // Reset waiting flag
+                    isWaitingState = false; 
                     nextGroupIndex++; waitingForPitches.clear(); 
                     document.getElementById('statusText').innerText = "PLAYING...";
                     document.getElementById('statusText').style.color = "#00ff88";
                     
-                    // History (Wait Mode)
                     let info = KEY_INFO[pitch];
-                    addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
+                    if(info) addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
                 } else {
                     wrongKeyFeedback = pitch; setTimeout(() => { wrongKeyFeedback = null; }, 300);
                 }
             } else if (soundMode === 'MANUAL') {
                 sampler.triggerAttack(Tone.Frequency(pitch, "midi").toNote());
-                // History (Manual Mode)
                 let info = KEY_INFO[pitch];
-                addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
+                if(info) addToHistory(viewMode==='MOBILE'? info.charMobile : info.charPC, ROW_COLORS[info.row]);
             }
         }
     }
@@ -580,7 +593,7 @@
         document.getElementById('statusText').innerText = "Ready: " + file.name;
         document.getElementById('statusText').style.color = "#00ff88";
         document.getElementById('btnPlay').innerText = "PLAY";
-        document.getElementById('btnPlay').disabled = false;
+        // Disabled removed from HTML, logic here is fine
         isPlaying = false;
     });
 
@@ -619,7 +632,7 @@
     
     // Init state
     document.getElementById('history-bar').style.display = 'flex';
-
+    resize();
     draw();
 </script>
 </body>
