@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Heartopia V49 Mobile Fix</title>
+    <title>Heartopiano</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -19,7 +19,9 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 100vh; /* Full viewport height */
+            /* Use dvh for mobile browsers to handle address bars correctly */
+            height: 100vh; 
+            height: 100dvh; 
             touch-action: none;
             user-select: none;
         }
@@ -27,149 +29,144 @@
         /* TIME DISPLAY */
         #time-display {
             position: absolute; top: 10px; right: 15px;
-            font-family: 'Roboto Mono', monospace; font-size: 14px; font-weight: bold;
-            color: #fab1a0; background: rgba(0,0,0,0.7);
-            padding: 5px 12px; border-radius: 20px; pointer-events: none; z-index: 50;
+            font-family: 'Roboto Mono', monospace; font-size: 12px; font-weight: bold;
+            color: #fab1a0; background: rgba(0,0,0,0.6);
+            padding: 3px 8px; border-radius: 15px; pointer-events: none; z-index: 50;
             border: 1px solid rgba(255,255,255,0.2);
-            box-shadow: 0 2px 10px rgba(0,0,0,0.5);
         }
 
         /* SHEET MUSIC */
         #sheet-container {
-            height: 160px; /* Desktop Default */
+            height: 140px; /* Desktop default */
             background: #20202a;
             border-bottom: 2px solid #444;
             display: flex; align-items: center;
             overflow-x: auto; white-space: nowrap;
             padding: 0 50% 0 50px; position: relative;
             scrollbar-width: none; flex-shrink: 0;
-            cursor: grab; transition: height 0.3s;
+            cursor: grab; transition: height 0.2s;
         }
         #sheet-container:active { cursor: grabbing; }
         
         #sheet-marker {
             position: absolute; left: 50px; top: 0; bottom: 0; width: 2px;
             background: #ffffff; z-index: 20; pointer-events: none;
-            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9), 0 0 20px rgba(255, 255, 255, 0.5);
+            box-shadow: 0 0 10px rgba(255, 255, 255, 0.9);
         }
 
         .sheet-group {
             display: inline-flex; flex-direction: column-reverse;
             align-items: center; justify-content: center;
-            margin: 0 8px; padding: 5px 8px; border-radius: 8px;
-            background: rgba(255,255,255,0.05); min-width: 45px;
+            margin: 0 6px; padding: 4px; border-radius: 6px;
+            background: rgba(255,255,255,0.05); min-width: 40px;
             border: 1px solid rgba(255,255,255,0.1);
-            transition: transform 0.1s;
         }
         .char-note {
-            font-family: 'Roboto Mono', monospace; font-size: 24px; font-weight: 900;
-            text-shadow: 1px 1px 0px rgba(0,0,0,0.8); line-height: 1.0; margin: 2px 0; display: block;
+            font-family: 'Roboto Mono', monospace; font-size: 20px; font-weight: 900;
+            text-shadow: 1px 1px 0px rgba(0,0,0,0.8); line-height: 1.0; margin: 1px 0; display: block;
         }
         .group-active {
-            background: rgba(255,255,255,0.15); transform: scale(1.2); z-index: 10;
-            border: 2px solid #fff; box-shadow: 0 0 25px rgba(255,255,255,0.2);
+            background: rgba(255,255,255,0.15); transform: scale(1.1); z-index: 10;
+            border: 2px solid #fff; box-shadow: 0 0 15px rgba(255,255,255,0.2);
         }
-        .group-passed { opacity: 0.2; filter: grayscale(100%); transform: scale(0.9); }
+        .group-passed { opacity: 0.3; filter: grayscale(100%); transform: scale(0.95); }
 
         /* CONTROLS */
         #controls {
-            padding: 5px 15px; background: rgba(30, 30, 40, 0.98);
-            display: flex; gap: 10px; align-items: center;
-            height: 50px; border-bottom: 1px solid #444; z-index: 20;
+            padding: 5px 10px; background: rgba(30, 30, 40, 0.98);
+            display: flex; gap: 8px; align-items: center;
+            height: 45px; border-bottom: 1px solid #444; z-index: 20;
             flex-shrink: 0; overflow-x: auto; white-space: nowrap;
-            transition: height 0.3s, padding 0.3s;
         }
         button, input[type=file]::file-selector-button {
-            padding: 6px 12px; background: #4a4a6a; color: white;
-            border: 2px solid #6c6c9d; border-radius: 8px;
-            font-family: 'Nunito', sans-serif; font-weight: bold; font-size: 12px; cursor: pointer;
+            padding: 5px 10px; background: #4a4a6a; color: white;
+            border: 2px solid #6c6c9d; border-radius: 6px;
+            font-family: 'Nunito', sans-serif; font-weight: bold; font-size: 11px; cursor: pointer;
         }
         button:hover { filter: brightness(1.2); }
         button[data-mode="AUTO"] { background: #00d2ff; color: #000; }
         button[data-mode="MANUAL"] { background: #ffc107; color: #000; }
-        button[data-mode="WAIT"] { background: #ff4757; color: #fff; box-shadow: 0 0 5px #ff4757; }
+        button[data-mode="WAIT"] { background: #ff4757; color: #fff; }
         button.active { background: #fff; color: #000; border-color: #00d2ff; }
         
-        #btnSettings { background: #6c5ce7; border-color: #a29bfe; font-size: 16px; padding: 4px 10px; }
-        #btnHelp { background: #00b894; border-color: #55efc4; font-size: 14px; padding: 6px 10px; }
-        #btnCredit { background: #ff7675; border-color: #fab1a0; color: #fff; font-size: 14px; padding: 6px 10px; }
-        #btnTrackMode { background: #e84393; border-color: #fd79a8; color: #fff; }
-        #btnRecord { background: #d63031; border-color: #ff7675; color: #fff; min-width: 50px; }
-        #btnRecord.recording { background: #ff0000; box-shadow: 0 0 10px #ff0000; animation: pulse 1s infinite; }
-        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
+        #btnRecord { background: #d63031; border-color: #ff7675; color: #fff; }
+        #btnRecord.recording { background: #ff0000; box-shadow: 0 0 8px #ff0000; animation: pulse 1s infinite; }
+        @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.6; } 100% { opacity: 1; } }
 
         /* HISTORY BAR */
         #history-bar {
-            height: 35px; background: rgba(0, 0, 0, 0.5);
+            height: 30px; background: rgba(0, 0, 0, 0.5);
             display: flex; align-items: center; justify-content: flex-end;
-            padding: 0 15px; overflow: hidden; border-bottom: 1px solid #333; position: relative; z-index: 15;
+            padding: 0 10px; overflow: hidden; border-bottom: 1px solid #333; position: relative; z-index: 15;
             flex-shrink: 0;
         }
         .history-item {
-            font-family: 'Nunito', sans-serif; font-weight: bold; font-size: 14px;
-            margin-left: 6px; padding: 2px 8px; border-radius: 4px;
+            font-family: 'Nunito', sans-serif; font-weight: bold; font-size: 12px;
+            margin-left: 5px; padding: 1px 6px; border-radius: 4px;
             background: rgba(255,255,255,0.1); border: 1px solid;
-            animation: fadeOut 4s forwards; white-space: nowrap;
+            animation: fadeOut 3s forwards; white-space: nowrap;
         }
         @keyframes fadeOut {
             0% { opacity: 1; transform: translateX(10px); } 10% { transform: translateX(0); }
             80% { opacity: 0.7; } 100% { opacity: 0; transform: translateX(-10px); }
         }
 
-        /* CANVAS */
+        /* CANVAS CONTAINER (Flex Grow to fill remaining space) */
         #canvas-container {
-            flex-grow: 1; position: relative;
+            flex-grow: 1; 
+            position: relative;
             background: linear-gradient(180deg, #15151a 0%, #1a1a24 100%);
-            min-height: 0; /* Important for flex scaling */
+            width: 100%;
+            height: 0; /* Important for flex to work properly */
+            min-height: 0;
         }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         
-        #statusText { font-size: 12px; color: #ffd700; margin-left: auto; font-weight: bold; }
+        #statusText { font-size: 11px; color: #ffd700; margin-left: auto; font-weight: bold; }
         .ready { color: #00ff88 !important; }
 
-        /* MODALS & OTHERS (Same as before) */
+        /* MODALS & OTHERS */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; }
-        .modal-content { background: #2d2d3a; padding: 20px; border-radius: 12px; border: 2px solid #6c5ce7; max-width: 90%; width: 350px; color: #eee; font-family: 'Nunito', sans-serif; position: relative; max-height: 80vh; overflow-y: auto; }
-        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
-        .close-btn:hover { color: #fff; }
-        #settings-modal { display: none; position: absolute; top: 60px; left: 20px; background: rgba(30, 30, 40, 0.95); border: 2px solid #6c5ce7; border-radius: 10px; padding: 15px; z-index: 90; box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 250px; }
-        .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-        .setting-label { font-size: 14px; color: #aaa; }
-        .setting-val { font-weight: bold; color: #fff; width: 30px; text-align: center; }
-        input[type=range] { width: 100px; accent-color: #00d2ff; }
-        .trans-btn { width: 30px; height: 30px; padding: 0; border-radius: 50%; background: #444; border: 1px solid #666; }
-        .donate-link { display: block; text-align: center; padding: 10px; margin-top: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: transform 0.1s; }
-        .donate-link:hover { transform: scale(1.02); filter: brightness(1.1); }
+        .modal-content { background: #2d2d3a; padding: 15px; border-radius: 12px; border: 2px solid #6c5ce7; max-width: 85%; width: 320px; color: #eee; font-family: 'Nunito', sans-serif; position: relative; max-height: 80vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 8px; right: 12px; font-size: 20px; cursor: pointer; color: #aaa; }
+        #settings-modal { display: none; position: absolute; top: 55px; left: 10px; background: rgba(30, 30, 40, 0.95); border: 2px solid #6c5ce7; border-radius: 10px; padding: 12px; z-index: 90; box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 200px; }
+        .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 10px; }
+        .setting-label { font-size: 12px; color: #aaa; }
+        .setting-val { font-weight: bold; color: #fff; width: 25px; text-align: center; font-size: 12px; }
+        input[type=range] { width: 80px; accent-color: #00d2ff; }
+        .trans-btn { width: 25px; height: 25px; padding: 0; border-radius: 50%; background: #444; border: 1px solid #666; font-size: 14px; }
+        .donate-link { display: block; text-align: center; padding: 8px; margin-top: 8px; border-radius: 6px; text-decoration: none; font-weight: bold; font-size: 12px; transition: transform 0.1s; }
         .kofi { background: #00b894; color: #fff; border: 1px solid #55efc4; }
         .tipme { background: #0984e3; color: #fff; border: 1px solid #74b9ff; }
         .tiktok { background: #000000; color: #fff; border: 1px solid #333; }
 
-        /* --- MOBILE OPTIMIZATIONS (The Fix) --- */
+        /* --- MOBILE OPTIMIZATIONS (AGGRESSIVE) --- */
         
-        /* 1. Mobile Portrait (จอแนวตั้งปกติ) */
+        /* Portrait Mobile */
         @media (max-width: 768px) {
-            #sheet-container { height: 110px; } /* ลดความสูงลงจาก 160 */
-            .sheet-group { min-width: 35px; padding: 3px 5px; }
-            .char-note { font-size: 20px; }
-            #controls { padding: 5px 10px; }
-            button { font-size: 11px; padding: 5px 8px; }
-            #time-display { font-size: 11px; padding: 3px 8px; top: 5px; right: 5px; }
+            #sheet-container { height: 90px; } /* Shrink sheet music */
+            .sheet-group { min-width: 30px; padding: 2px 4px; margin: 0 3px; }
+            .char-note { font-size: 16px; }
+            #controls { height: 40px; padding: 2px 8px; }
+            button { font-size: 10px; padding: 4px 8px; }
+            #time-display { top: 5px; right: 5px; font-size: 10px; padding: 2px 6px; }
         }
 
-        /* 2. Mobile Landscape (จอแนวนอน - เน้นพื้นที่เล่น) */
+        /* Landscape Mobile (Ultra Compact) */
         @media (max-height: 500px) and (orientation: landscape) {
-            #sheet-container { height: 70px; } /* เหลือที่ไว้นิดเดียวพอ */
-            .sheet-group { min-width: 30px; padding: 2px; }
-            .char-note { font-size: 16px; margin: 0; }
+            #sheet-container { height: 50px; padding-left: 40%; } /* Tiny sheet */
+            .sheet-group { min-width: 25px; padding: 1px; margin: 0 2px; }
+            .char-note { font-size: 12px; text-shadow: none; }
+            #sheet-content span { font-size: 10px; } /* 'Load MIDI' text */
             
-            #controls { height: 40px; padding: 2px 10px; } /* แถบเครื่องมือเล็กสุดๆ */
-            button { font-size: 10px; padding: 4px 6px; }
+            #controls { height: 35px; padding: 0 10px; }
+            button { font-size: 9px; padding: 3px 6px; border-radius: 4px; }
             
-            /* ซ่อน History ในแนวนอน เพราะเกะกะ */
-            #history-bar { display: none !important; }
+            /* Hide non-essentials in Landscape to save space */
+            #history-bar { display: none !important; } 
             
-            #time-display { font-size: 10px; top: 2px; right: 5px; padding: 2px 6px; }
-            #settings-modal { top: 40px; left: 10px; }
+            #time-display { top: 2px; right: 5px; font-size: 9px; padding: 1px 5px; background: rgba(0,0,0,0.4); }
+            #settings-modal { top: 38px; left: 5px; padding: 8px; }
         }
     </style>
 </head>
@@ -372,7 +369,9 @@
 
     function addToHistory(char, row) {
         const bar = document.getElementById('history-bar');
-        if (!bar || bar.style.display === 'none') return;
+        // Fix: Check offsetParent instead of style.display to account for CSS media query hiding
+        if (!bar || bar.offsetParent === null) return;
+        
         const item = document.createElement('span'); item.className = 'history-item';
         item.innerHTML = char; item.style.color = ROW_COLORS[row]; item.style.borderColor = ROW_COLORS[row];
         bar.appendChild(item); setTimeout(() => { if(item.parentNode) item.remove(); }, 4000);
@@ -516,7 +515,6 @@
 
     function resize() { if(canvas.parentElement) { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; } }
     window.addEventListener('resize', resize);
-    // Add orientation change listener
     window.addEventListener('orientationchange', () => { setTimeout(resize, 200); });
     
     function draw() {
@@ -537,22 +535,39 @@
     }
 
     function drawMobileMode() {
+        // Calculate row height based on CURRENT canvas height (which is responsive now)
         const rowH = canvas.height / 4;
+        
         [ROWS.LOW, ROWS.MID, ROWS.HIGH].forEach((rowKeys, rIdx) => {
-            let slotW = canvas.width / rowKeys.length; let startY = canvas.height - (rowH * (rIdx+1)); let rowColor = ROW_COLORS[rIdx];
-            ctx.fillStyle = (rIdx%2==0) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)"; ctx.fillRect(0, startY, canvas.width, rowH);
-            ctx.strokeStyle = rowColor; ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(0, startY); ctx.lineTo(canvas.width, startY); ctx.stroke();
-            ctx.save(); ctx.fillStyle = rowColor; ctx.font = "bold 12px Nunito"; ctx.textAlign = "left"; ctx.fillText(["LOW", "MID", "HIGH"][rIdx], 5, startY + 15); ctx.restore();
+            let slotW = canvas.width / rowKeys.length;
+            // Draw from bottom up to ensure Low row is at the very bottom
+            let startY = canvas.height - (rowH * (rIdx+1));
+            let rowColor = ROW_COLORS[rIdx];
+
+            ctx.fillStyle = (rIdx%2==0) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)";
+            ctx.fillRect(0, startY, canvas.width, rowH);
+            ctx.strokeStyle = rowColor; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, startY); ctx.lineTo(canvas.width, startY); ctx.stroke();
+            
+            // Row label (Optional, can comment out if too cluttered)
+            // ctx.save(); ctx.fillStyle = rowColor; ctx.font = "bold 10px Nunito"; ctx.textAlign = "left";
+            // ctx.fillText(["LOW", "MID", "HIGH"][rIdx], 5, startY + 12); ctx.restore();
 
             rowKeys.forEach((pitch, sIdx) => {
                 let info = KEY_INFO[pitch];
                 if(!info) return;
-                let x = sIdx * slotW; let y = startY + (rowH * 0.25); let w = slotW; let h = rowH * 0.7;
+                
+                let x = sIdx * slotW;
+                let y = startY + (rowH * 0.1); // Small padding top
+                let w = slotW;
+                let h = rowH * 0.8; // Button height relative to row
+                let cx = x + w/2; let cy = y + h/2;
+                
                 let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
-                let isWaiting = waitingForPitches.has(pitch); let cx = x + w/2; let cy = y + h/2;
+                let isWaiting = waitingForPitches.has(pitch);
                 
                 ctx.beginPath();
-                if(info.style === 'w') roundRectPath(ctx, x+2, y, w-4, h, 12); else ctx.arc(cx, cy, Math.min(w,h)/2.5, 0, Math.PI*2);
+                if(info.style === 'w') roundRectPath(ctx, x+2, y, w-4, h, 8); else ctx.arc(cx, cy, Math.min(w,h)/2.2, 0, Math.PI*2);
 
                 if (pitch === wrongKeyFeedback) { ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000"; } 
                 else if(isPressed) { ctx.shadowBlur = 20; ctx.shadowColor = rowColor; ctx.fillStyle = rowColor; } 
@@ -563,7 +578,13 @@
                 if (pitch !== wrongKeyFeedback) { if(isWaiting) { ctx.lineWidth=3; ctx.strokeStyle="#ff4757"; ctx.stroke(); } else if(info.style==='b') { ctx.lineWidth=2; ctx.strokeStyle="#ffffff"; ctx.stroke(); } }
                 ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#1a1a24" : "#fff");
                 if(isWaiting && !isPressed) ctx.fillStyle = "#fff";
-                ctx.font = info.style==='w' ? "bold 24px Nunito" : "bold 16px Nunito"; ctx.textAlign = "center"; ctx.fillText(info.charMobile, cx, cy + 8); ctx.shadowBlur = 0;
+                
+                // Adjust font size based on height
+                let fontSize = Math.min(20, rowH * 0.4); 
+                ctx.font = (info.style==='w' ? "bold " : "bold ") + fontSize + "px Nunito"; 
+                ctx.textAlign = "center"; 
+                ctx.fillText(info.charMobile, cx, cy + (fontSize/3)); 
+                ctx.shadowBlur = 0;
             });
         });
     }
