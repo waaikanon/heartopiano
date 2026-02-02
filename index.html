@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Heartopiano</title>
+    <title>Heartopia V49 Mobile Fix</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -19,7 +19,7 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            height: 100vh;
+            height: 100vh; /* Full viewport height */
             touch-action: none;
             user-select: none;
         }
@@ -36,7 +36,7 @@
 
         /* SHEET MUSIC */
         #sheet-container {
-            height: 160px;
+            height: 160px; /* Desktop Default */
             background: #20202a;
             border-bottom: 2px solid #444;
             display: flex; align-items: center;
@@ -77,7 +77,7 @@
             display: flex; gap: 10px; align-items: center;
             height: 50px; border-bottom: 1px solid #444; z-index: 20;
             flex-shrink: 0; overflow-x: auto; white-space: nowrap;
-            transition: height 0.3s;
+            transition: height 0.3s, padding 0.3s;
         }
         button, input[type=file]::file-selector-button {
             padding: 6px 12px; background: #4a4a6a; color: white;
@@ -94,51 +94,9 @@
         #btnHelp { background: #00b894; border-color: #55efc4; font-size: 14px; padding: 6px 10px; }
         #btnCredit { background: #ff7675; border-color: #fab1a0; color: #fff; font-size: 14px; padding: 6px 10px; }
         #btnTrackMode { background: #e84393; border-color: #fd79a8; color: #fff; }
-        
-        /* REC BUTTON STYLE */
-        #btnRecord { background: #d63031; border-color: #ff7675; color: #fff; min-width: 60px; }
-        #btnRecord.recording { 
-            background: #ff0000; 
-            box-shadow: 0 0 10px #ff0000; 
-            animation: pulse 1s infinite;
-        }
+        #btnRecord { background: #d63031; border-color: #ff7675; color: #fff; min-width: 50px; }
+        #btnRecord.recording { background: #ff0000; box-shadow: 0 0 10px #ff0000; animation: pulse 1s infinite; }
         @keyframes pulse { 0% { opacity: 1; } 50% { opacity: 0.5; } 100% { opacity: 1; } }
-
-        /* MODALS */
-        .modal {
-            display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center;
-        }
-        .modal-content {
-            background: #2d2d3a; padding: 20px; border-radius: 12px; border: 2px solid #6c5ce7;
-            max-width: 90%; width: 350px; color: #eee; font-family: 'Nunito', sans-serif; position: relative;
-            max-height: 80vh; overflow-y: auto;
-        }
-        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
-        .close-btn:hover { color: #fff; }
-        
-        /* SETTINGS MODAL */
-        #settings-modal {
-            display: none; position: absolute; top: 60px; left: 20px;
-            background: rgba(30, 30, 40, 0.95); border: 2px solid #6c5ce7;
-            border-radius: 10px; padding: 15px; z-index: 90;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 250px;
-        }
-        .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
-        .setting-label { font-size: 14px; color: #aaa; }
-        .setting-val { font-weight: bold; color: #fff; width: 30px; text-align: center; }
-        input[type=range] { width: 100px; accent-color: #00d2ff; }
-        .trans-btn { width: 30px; height: 30px; padding: 0; border-radius: 50%; background: #444; border: 1px solid #666; }
-
-        /* LINKS */
-        .donate-link {
-            display: block; text-align: center; padding: 10px; margin-top: 10px; border-radius: 8px;
-            text-decoration: none; font-weight: bold; transition: transform 0.1s;
-        }
-        .donate-link:hover { transform: scale(1.02); filter: brightness(1.1); }
-        .kofi { background: #00b894; color: #fff; border: 1px solid #55efc4; }
-        .tipme { background: #0984e3; color: #fff; border: 1px solid #74b9ff; }
-        .tiktok { background: #000000; color: #fff; border: 1px solid #333; }
 
         /* HISTORY BAR */
         #history-bar {
@@ -162,21 +120,56 @@
         #canvas-container {
             flex-grow: 1; position: relative;
             background: linear-gradient(180deg, #15151a 0%, #1a1a24 100%);
-            min-height: 100px;
+            min-height: 0; /* Important for flex scaling */
         }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         
         #statusText { font-size: 12px; color: #ffd700; margin-left: auto; font-weight: bold; }
         .ready { color: #00ff88 !important; }
 
-        @media (orientation: landscape) and (max-height: 600px) {
-            #sheet-container { height: 90px; }
-            .sheet-group { min-width: 35px; padding: 2px 5px; }
-            .char-note { font-size: 18px; }
-            #controls { height: 40px; padding: 2px 15px; }
-            #time-display { top: 5px; right: 10px; font-size: 12px; padding: 2px 8px; }
-            button { padding: 4px 8px; font-size: 11px; }
-            #settings-modal { top: 45px; }
+        /* MODALS & OTHERS (Same as before) */
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; }
+        .modal-content { background: #2d2d3a; padding: 20px; border-radius: 12px; border: 2px solid #6c5ce7; max-width: 90%; width: 350px; color: #eee; font-family: 'Nunito', sans-serif; position: relative; max-height: 80vh; overflow-y: auto; }
+        .close-btn { position: absolute; top: 10px; right: 15px; font-size: 24px; cursor: pointer; color: #aaa; }
+        .close-btn:hover { color: #fff; }
+        #settings-modal { display: none; position: absolute; top: 60px; left: 20px; background: rgba(30, 30, 40, 0.95); border: 2px solid #6c5ce7; border-radius: 10px; padding: 15px; z-index: 90; box-shadow: 0 10px 30px rgba(0,0,0,0.5); min-width: 250px; }
+        .setting-row { display: flex; align-items: center; justify-content: space-between; margin-bottom: 15px; }
+        .setting-label { font-size: 14px; color: #aaa; }
+        .setting-val { font-weight: bold; color: #fff; width: 30px; text-align: center; }
+        input[type=range] { width: 100px; accent-color: #00d2ff; }
+        .trans-btn { width: 30px; height: 30px; padding: 0; border-radius: 50%; background: #444; border: 1px solid #666; }
+        .donate-link { display: block; text-align: center; padding: 10px; margin-top: 10px; border-radius: 8px; text-decoration: none; font-weight: bold; transition: transform 0.1s; }
+        .donate-link:hover { transform: scale(1.02); filter: brightness(1.1); }
+        .kofi { background: #00b894; color: #fff; border: 1px solid #55efc4; }
+        .tipme { background: #0984e3; color: #fff; border: 1px solid #74b9ff; }
+        .tiktok { background: #000000; color: #fff; border: 1px solid #333; }
+
+        /* --- MOBILE OPTIMIZATIONS (The Fix) --- */
+        
+        /* 1. Mobile Portrait (จอแนวตั้งปกติ) */
+        @media (max-width: 768px) {
+            #sheet-container { height: 110px; } /* ลดความสูงลงจาก 160 */
+            .sheet-group { min-width: 35px; padding: 3px 5px; }
+            .char-note { font-size: 20px; }
+            #controls { padding: 5px 10px; }
+            button { font-size: 11px; padding: 5px 8px; }
+            #time-display { font-size: 11px; padding: 3px 8px; top: 5px; right: 5px; }
+        }
+
+        /* 2. Mobile Landscape (จอแนวนอน - เน้นพื้นที่เล่น) */
+        @media (max-height: 500px) and (orientation: landscape) {
+            #sheet-container { height: 70px; } /* เหลือที่ไว้นิดเดียวพอ */
+            .sheet-group { min-width: 30px; padding: 2px; }
+            .char-note { font-size: 16px; margin: 0; }
+            
+            #controls { height: 40px; padding: 2px 10px; } /* แถบเครื่องมือเล็กสุดๆ */
+            button { font-size: 10px; padding: 4px 6px; }
+            
+            /* ซ่อน History ในแนวนอน เพราะเกะกะ */
+            #history-bar { display: none !important; }
+            
+            #time-display { font-size: 10px; top: 2px; right: 5px; padding: 2px 6px; }
+            #settings-modal { top: 40px; left: 10px; }
         }
     </style>
 </head>
@@ -194,7 +187,8 @@
 <div id="controls">
     <input type="file" id="fileInput" accept=".mid">
     <button id="btnPlay">PLAY</button>
-    <button id="btnRecord">🔴 REC</button> <button id="btnPlayMode" data-mode="AUTO">Mode: AUTO</button>
+    <button id="btnRecord">🔴 REC</button>
+    <button id="btnPlayMode" data-mode="AUTO">Mode: AUTO</button>
     <button id="btnTrackMode">Track: ALL</button>
     <button id="btnSettings">⚙️</button>
     <button id="btnHelp">❓</button>
@@ -223,10 +217,12 @@
     <div class="modal-content">
         <span class="close-btn" id="closeHelp">&times;</span>
         <h2 style="color:#00b894; border-bottom:1px solid #444; padding-bottom:10px; margin-top:0;">🎹 How to Play</h2>
-        <h3 style="color:#d63031; margin-bottom:5px;">• Recording (New!)</h3>
-        <p style="font-size:13px; color:#ccc; margin-top:0;">Press <b>🔴 REC</b> to start. Play your song. Press <b>STOP</b> to save as MIDI file.</p>
+        <h3 style="color:#d63031; margin-bottom:5px;">• Recording</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;">Press <b>🔴 REC</b> > Play > Press <b>STOP</b> to save MIDI.</p>
         <h3 style="color:#ffc107; margin-bottom:5px;">• Modes</h3>
         <p style="font-size:13px; color:#ccc; margin-top:0;"><b>AUTO:</b> Listen | <b>MANUAL:</b> Play | <b>WAIT:</b> Practice</p>
+        <h3 style="color:#ffc107; margin-bottom:5px;">• Navigation</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;">Swipe on notes to seek.</p>
     </div>
 </div>
 
@@ -234,9 +230,7 @@
     <div class="modal-content" style="text-align:center;">
         <span class="close-btn" id="closeCredit">&times;</span>
         <h2 style="color:#ff7675; border-bottom:1px solid #444; padding-bottom:10px; margin-top:0;">❤️ Credits</h2>
-        <p style="font-size:16px; color:#fff; margin-bottom:20px;">
-            <b>Discord :</b> mashpotato7
-        </p>
+        <p style="font-size:16px; color:#fff; margin-bottom:20px;"><b>Discord :</b> mashpotato7</p>
         <p style="font-size:13px; color:#aaa; margin-bottom:10px;">Follow & Support:</p>
         <a href="https://www.tiktok.com/@professorraccoon29" target="_blank" class="donate-link tiktok">🎵 TikTok: @professorraccoon29</a>
         <a href="https://ko-fi.com/atd764678" target="_blank" class="donate-link kofi">☕ Donate via Ko-fi</a>
@@ -313,12 +307,8 @@
     let waitingForPitches = new Set(); let isWaitingState = false; let wrongKeyFeedback = null; 
     let globalTranspose = 0;
     let isScrubbing = false; 
-    
-    // RECORDER STATE
-    let isRecording = false;
-    let recordStartTime = 0;
-    let activeRecordingNotes = {}; // { pitch: startTime }
-    let recordedEvents = []; // { pitch, startTime, duration }
+    let isRecording = false; let recordStartTime = 0;
+    let activeRecordingNotes = {}; let recordedEvents = [];
 
     const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
 
@@ -382,6 +372,7 @@
 
     function addToHistory(char, row) {
         const bar = document.getElementById('history-bar');
+        if (!bar || bar.style.display === 'none') return;
         const item = document.createElement('span'); item.className = 'history-item';
         item.innerHTML = char; item.style.color = ROW_COLORS[row]; item.style.borderColor = ROW_COLORS[row];
         bar.appendChild(item); setTimeout(() => { if(item.parentNode) item.remove(); }, 4000);
@@ -428,15 +419,10 @@
     // --- 4. RECORDER FUNCTIONS ---
     function toggleRecording() {
         if (!isRecording) {
-            // Start Recording
-            isRecording = true;
-            recordStartTime = Tone.now();
-            activeRecordingNotes = {};
-            recordedEvents = [];
+            isRecording = true; recordStartTime = Tone.now(); activeRecordingNotes = {}; recordedEvents = [];
             document.getElementById('btnRecord').innerText = "⏹ STOP";
             document.getElementById('btnRecord').classList.add('recording');
         } else {
-            // Stop Recording & Save
             isRecording = false;
             document.getElementById('btnRecord').innerText = "🔴 REC";
             document.getElementById('btnRecord').classList.remove('recording');
@@ -446,64 +432,35 @@
 
     function saveMidi() {
         if (recordedEvents.length === 0) { alert("No notes recorded!"); return; }
-        
-        // Use Tone.Midi to generate file
-        const midi = new Midi();
-        const track = midi.addTrack();
-        
-        recordedEvents.forEach(evt => {
-            track.addNote({
-                midi: evt.pitch,
-                time: evt.startTime,
-                duration: evt.duration
-            });
-        });
-
-        // Download
+        const midi = new Midi(); const track = midi.addTrack();
+        recordedEvents.forEach(evt => { track.addNote({ midi: evt.pitch, time: evt.startTime, duration: evt.duration }); });
         const array = midi.toArray();
         const blob = new Blob([array], { type: "audio/midi" });
         const url = URL.createObjectURL(blob);
-        const a = document.createElement("a");
-        a.href = url;
-        a.download = "heartopia_recording.mid";
-        document.body.appendChild(a);
-        a.click();
-        document.body.removeChild(a);
+        const a = document.createElement("a"); a.href = url; a.download = "heartopia_recording.mid";
+        document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
     // --- 5. SCRUBBING LOGIC ---
     const sheetContainer = document.getElementById('sheet-container');
     let startX, startScrollLeft;
 
-    sheetContainer.addEventListener('mousedown', (e) => {
-        isScrubbing = true;
-        startX = e.pageX - sheetContainer.offsetLeft;
-        startScrollLeft = sheetContainer.scrollLeft;
-        sheetContainer.style.cursor = 'grabbing';
-    });
+    sheetContainer.addEventListener('mousedown', (e) => { isScrubbing = true; startX = e.pageX - sheetContainer.offsetLeft; startScrollLeft = sheetContainer.scrollLeft; sheetContainer.style.cursor = 'grabbing'; });
     sheetContainer.addEventListener('mouseleave', () => { isScrubbing = false; sheetContainer.style.cursor = 'grab'; });
     sheetContainer.addEventListener('mouseup', () => { isScrubbing = false; sheetContainer.style.cursor = 'grab'; });
     sheetContainer.addEventListener('mousemove', (e) => {
-        if (!isScrubbing) return;
-        e.preventDefault();
-        const x = e.pageX - sheetContainer.offsetLeft;
-        const walk = (x - startX) * 2; 
-        sheetContainer.scrollLeft = startScrollLeft - walk;
-        seekToScrollPosition();
+        if (!isScrubbing) return; e.preventDefault();
+        const x = e.pageX - sheetContainer.offsetLeft; const walk = (x - startX) * 2; 
+        sheetContainer.scrollLeft = startScrollLeft - walk; seekToScrollPosition();
     });
     sheetContainer.addEventListener('touchstart', () => { isScrubbing = true; });
     sheetContainer.addEventListener('touchend', () => { isScrubbing = false; });
-    sheetContainer.addEventListener('scroll', () => {
-        if(isScrubbing) seekToScrollPosition();
-    });
+    sheetContainer.addEventListener('scroll', () => { if(isScrubbing) seekToScrollPosition(); });
 
     function seekToScrollPosition() {
         if(!midiData || sheetElements.length === 0) return;
-        const currentScroll = sheetContainer.scrollLeft;
-        const marker = 50;
-        let closest = sheetElements.reduce((prev, curr) => {
-            return (Math.abs(curr.element.offsetLeft - marker - currentScroll) < Math.abs(prev.element.offsetLeft - marker - currentScroll) ? curr : prev);
-        });
+        const currentScroll = sheetContainer.scrollLeft; const marker = 50;
+        let closest = sheetElements.reduce((prev, curr) => { return (Math.abs(curr.element.offsetLeft - marker - currentScroll) < Math.abs(prev.element.offsetLeft - marker - currentScroll) ? curr : prev); });
         if(closest) {
             Tone.Transport.seconds = closest.time;
             nextGroupIndex = playGroups.findIndex(g => g.time >= closest.time);
@@ -514,7 +471,6 @@
     // --- 6. ENGINE ---
     function updateSheet(currentTime) {
         if (isScrubbing) return; 
-
         const container = document.getElementById('sheet-container'); const markerOffset = 50; let targetIdx;
         if (soundMode === 'WAIT' && isWaitingState) targetIdx = nextGroupIndex;
         else {
@@ -560,6 +516,8 @@
 
     function resize() { if(canvas.parentElement) { canvas.width = canvas.parentElement.clientWidth; canvas.height = canvas.parentElement.clientHeight; } }
     window.addEventListener('resize', resize);
+    // Add orientation change listener
+    window.addEventListener('orientationchange', () => { setTimeout(resize, 200); });
     
     function draw() {
         if(canvas.width === 0) resize();
@@ -567,7 +525,6 @@
             ctx.fillStyle = "#1a1a24"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             if (viewMode === 'PC') drawPCMode(); else drawMobileMode();
             
-            // Time Display Update
             let total = midiData ? midiData.duration : 0;
             let current = Tone.Transport.seconds;
             if (current > total) current = total;
@@ -614,7 +571,6 @@
     function drawPCMode() {
         const slotW = canvas.width / MAX_SLOTS_PC; const hitY = canvas.height - 100;
         
-        // HIT LINE
         ctx.shadowBlur = 10; ctx.shadowColor = "rgba(255, 255, 255, 0.5)"; ctx.strokeStyle = "rgba(255, 255, 255, 0.8)"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(0, hitY); ctx.lineTo(canvas.width, hitY); ctx.stroke(); ctx.shadowBlur = 0; 
 
@@ -686,11 +642,7 @@
     }
 
     function playNote(pitch) {
-        // RECORDER LOGIC
-        if (isRecording) {
-            activeRecordingNotes[pitch] = Tone.now();
-        }
-
+        if (isRecording) activeRecordingNotes[pitch] = Tone.now();
         if (!activeTouches.has(pitch)) {
             activeTouches.add(pitch);
             if (soundMode === 'WAIT' && waitingForPitches.size > 0) {
@@ -707,18 +659,11 @@
     }
     
     function stopNote(pitch) {
-        // RECORDER LOGIC (Stop)
         if (isRecording && activeRecordingNotes[pitch]) {
-            const startTime = activeRecordingNotes[pitch];
-            const duration = Tone.now() - startTime;
-            recordedEvents.push({
-                pitch: pitch,
-                startTime: startTime - recordStartTime, // Relative time
-                duration: duration
-            });
+            const startTime = activeRecordingNotes[pitch]; const duration = Tone.now() - startTime;
+            recordedEvents.push({ pitch: pitch, startTime: startTime - recordStartTime, duration: duration });
             delete activeRecordingNotes[pitch];
         }
-
         if (activeTouches.has(pitch)) {
             activeTouches.delete(pitch);
             if(soundMode !== 'AUTO') sampler.triggerRelease(Tone.Frequency(pitch, "midi").toNote());
@@ -746,8 +691,6 @@
         if(midiData) generateSheetMusic(midiData); 
     });
     document.getElementById('btnTrackMode').addEventListener('click', (e) => { trackMode = (trackMode === 'ALL') ? 'MELODY' : 'ALL'; e.target.innerText = "Track: " + trackMode; if(midiData) restartGame(); });
-    
-    // REC BUTTON EVENT
     document.getElementById('btnRecord').addEventListener('click', toggleRecording);
 
     // Modals
