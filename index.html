@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Heartopiano</title>
+    <title>Heartopia V51 Touch Fix</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -19,12 +19,28 @@
             overflow: hidden;
             display: flex;
             flex-direction: column;
-            /* Use dvh for mobile browsers to handle address bars correctly */
             height: 100vh; 
             height: 100dvh; 
             touch-action: none;
             user-select: none;
+            -webkit-user-select: none; /* Disable selection on iOS */
         }
+
+        /* START OVERLAY (To unlock Audio) */
+        #start-overlay {
+            position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+            background: rgba(0,0,0,0.85); z-index: 9999;
+            display: flex; flex-direction: column;
+            align-items: center; justify-content: center;
+            cursor: pointer;
+        }
+        #start-btn {
+            padding: 20px 40px; font-size: 24px; color: #fff;
+            background: #00d2ff; border: none; border-radius: 50px;
+            font-family: 'Nunito', sans-serif; font-weight: bold;
+            box-shadow: 0 0 20px #00d2ff; animation: pulseBtn 1.5s infinite;
+        }
+        @keyframes pulseBtn { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
         /* TIME DISPLAY */
         #time-display {
@@ -37,7 +53,7 @@
 
         /* SHEET MUSIC */
         #sheet-container {
-            height: 140px; /* Desktop default */
+            height: 140px;
             background: #20202a;
             border-bottom: 2px solid #444;
             display: flex; align-items: center;
@@ -111,21 +127,18 @@
             80% { opacity: 0.7; } 100% { opacity: 0; transform: translateX(-10px); }
         }
 
-        /* CANVAS CONTAINER (Flex Grow to fill remaining space) */
+        /* CANVAS CONTAINER */
         #canvas-container {
-            flex-grow: 1; 
-            position: relative;
+            flex-grow: 1; position: relative;
             background: linear-gradient(180deg, #15151a 0%, #1a1a24 100%);
-            width: 100%;
-            height: 0; /* Important for flex to work properly */
-            min-height: 0;
+            width: 100%; height: 0; min-height: 0;
         }
         canvas { display: block; width: 100%; height: 100%; touch-action: none; }
         
         #statusText { font-size: 11px; color: #ffd700; margin-left: auto; font-weight: bold; }
         .ready { color: #00ff88 !important; }
 
-        /* MODALS & OTHERS */
+        /* MODALS */
         .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.85); z-index: 100; align-items: center; justify-content: center; }
         .modal-content { background: #2d2d3a; padding: 15px; border-radius: 12px; border: 2px solid #6c5ce7; max-width: 85%; width: 320px; color: #eee; font-family: 'Nunito', sans-serif; position: relative; max-height: 80vh; overflow-y: auto; }
         .close-btn { position: absolute; top: 8px; right: 12px; font-size: 20px; cursor: pointer; color: #aaa; }
@@ -140,37 +153,34 @@
         .tipme { background: #0984e3; color: #fff; border: 1px solid #74b9ff; }
         .tiktok { background: #000000; color: #fff; border: 1px solid #333; }
 
-        /* --- MOBILE OPTIMIZATIONS (AGGRESSIVE) --- */
-        
-        /* Portrait Mobile */
+        /* MOBILE OPTIMIZATIONS */
         @media (max-width: 768px) {
-            #sheet-container { height: 90px; } /* Shrink sheet music */
+            #sheet-container { height: 90px; }
             .sheet-group { min-width: 30px; padding: 2px 4px; margin: 0 3px; }
             .char-note { font-size: 16px; }
             #controls { height: 40px; padding: 2px 8px; }
             button { font-size: 10px; padding: 4px 8px; }
             #time-display { top: 5px; right: 5px; font-size: 10px; padding: 2px 6px; }
         }
-
-        /* Landscape Mobile (Ultra Compact) */
         @media (max-height: 500px) and (orientation: landscape) {
-            #sheet-container { height: 50px; padding-left: 40%; } /* Tiny sheet */
+            #sheet-container { height: 50px; padding-left: 40%; }
             .sheet-group { min-width: 25px; padding: 1px; margin: 0 2px; }
             .char-note { font-size: 12px; text-shadow: none; }
-            #sheet-content span { font-size: 10px; } /* 'Load MIDI' text */
-            
             #controls { height: 35px; padding: 0 10px; }
             button { font-size: 9px; padding: 3px 6px; border-radius: 4px; }
-            
-            /* Hide non-essentials in Landscape to save space */
-            #history-bar { display: none !important; } 
-            
+            #history-bar { display: none !important; }
             #time-display { top: 2px; right: 5px; font-size: 9px; padding: 1px 5px; background: rgba(0,0,0,0.4); }
             #settings-modal { top: 38px; left: 5px; padding: 8px; }
         }
     </style>
 </head>
 <body>
+
+<div id="start-overlay">
+    <div style="font-size: 40px; margin-bottom: 20px;">🎹</div>
+    <button id="start-btn">TAP TO START</button>
+    <p style="color: #aaa; margin-top: 10px; font-size: 14px;">(Unlock Audio & Touch)</p>
+</div>
 
 <div id="time-display">0:00 / 0:00</div> 
 
@@ -309,6 +319,13 @@
 
     const canvas = document.getElementById('gameCanvas'); const ctx = canvas.getContext('2d');
 
+    // --- START OVERLAY LOGIC ---
+    document.getElementById('start-overlay').addEventListener('click', async () => {
+        await Tone.start();
+        document.getElementById('start-overlay').style.display = 'none';
+        console.log("Audio Context Started");
+    });
+
     // --- 3. HELPER FUNCTIONS ---
     function formatTime(seconds) {
         if (isNaN(seconds)) return "0:00";
@@ -369,9 +386,7 @@
 
     function addToHistory(char, row) {
         const bar = document.getElementById('history-bar');
-        // Fix: Check offsetParent instead of style.display to account for CSS media query hiding
         if (!bar || bar.offsetParent === null) return;
-        
         const item = document.createElement('span'); item.className = 'history-item';
         item.innerHTML = char; item.style.color = ROW_COLORS[row]; item.style.borderColor = ROW_COLORS[row];
         bar.appendChild(item); setTimeout(() => { if(item.parentNode) item.remove(); }, 4000);
@@ -389,9 +404,7 @@
                 let transposedPitch = note.midi + globalTranspose;
                 let info = getSmartInfo(transposedPitch);
                 if (!info) return;
-                
                 if (trackMode === 'MELODY' && info.row === 0) return; 
-
                 Tone.Transport.schedule((time) => {
                     if (soundMode === 'AUTO') {
                         sampler.triggerAttackRelease(Tone.Frequency(transposedPitch, "midi").toNote(), note.duration, time);
@@ -415,7 +428,6 @@
         });
     }
 
-    // --- 4. RECORDER FUNCTIONS ---
     function toggleRecording() {
         if (!isRecording) {
             isRecording = true; recordStartTime = Tone.now(); activeRecordingNotes = {}; recordedEvents = [];
@@ -440,10 +452,9 @@
         document.body.appendChild(a); a.click(); document.body.removeChild(a);
     }
 
-    // --- 5. SCRUBBING LOGIC ---
+    // --- SCRUBBING LOGIC ---
     const sheetContainer = document.getElementById('sheet-container');
     let startX, startScrollLeft;
-
     sheetContainer.addEventListener('mousedown', (e) => { isScrubbing = true; startX = e.pageX - sheetContainer.offsetLeft; startScrollLeft = sheetContainer.scrollLeft; sheetContainer.style.cursor = 'grabbing'; });
     sheetContainer.addEventListener('mouseleave', () => { isScrubbing = false; sheetContainer.style.cursor = 'grab'; });
     sheetContainer.addEventListener('mouseup', () => { isScrubbing = false; sheetContainer.style.cursor = 'grab'; });
@@ -467,7 +478,7 @@
         }
     }
 
-    // --- 6. ENGINE ---
+    // --- ENGINE ---
     function updateSheet(currentTime) {
         if (isScrubbing) return; 
         const container = document.getElementById('sheet-container'); const markerOffset = 50; let targetIdx;
@@ -502,11 +513,7 @@
                         for(let p in KEY_INFO) { if(KEY_INFO[p] === info) { waitingForPitches.add(parseInt(p)); break; } }
                     }
                 });
-                
-                if (waitingForPitches.size === 0) {
-                    isWaitingState = false; nextGroupIndex++; Tone.Transport.start(); return;
-                }
-
+                if (waitingForPitches.size === 0) { isWaitingState = false; nextGroupIndex++; Tone.Transport.start(); return; }
                 updateSheet(nextGroup.time);
                 document.getElementById('statusText').innerText = "WAITING..."; document.getElementById('statusText').style.color = "#ff4757";
             }
@@ -522,12 +529,10 @@
         try {
             ctx.fillStyle = "#1a1a24"; ctx.fillRect(0, 0, canvas.width, canvas.height);
             if (viewMode === 'PC') drawPCMode(); else drawMobileMode();
-            
             let total = midiData ? midiData.duration : 0;
             let current = Tone.Transport.seconds;
             if (current > total) current = total;
             document.getElementById('time-display').innerText = `${formatTime(current)} / ${formatTime(total)}`;
-
             if (isPlaying && midiData) { updateSheet(Tone.Transport.seconds); checkWaitMode(); }
             else if (midiData) { updateSheet(Tone.Transport.seconds); } 
         } catch (e) { console.error(e); }
@@ -535,66 +540,43 @@
     }
 
     function drawMobileMode() {
-        // Calculate row height based on CURRENT canvas height (which is responsive now)
         const rowH = canvas.height / 4;
-        
         [ROWS.LOW, ROWS.MID, ROWS.HIGH].forEach((rowKeys, rIdx) => {
             let slotW = canvas.width / rowKeys.length;
-            // Draw from bottom up to ensure Low row is at the very bottom
             let startY = canvas.height - (rowH * (rIdx+1));
             let rowColor = ROW_COLORS[rIdx];
-
             ctx.fillStyle = (rIdx%2==0) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)";
             ctx.fillRect(0, startY, canvas.width, rowH);
             ctx.strokeStyle = rowColor; ctx.lineWidth = 2;
             ctx.beginPath(); ctx.moveTo(0, startY); ctx.lineTo(canvas.width, startY); ctx.stroke();
-            
-            // Row label (Optional, can comment out if too cluttered)
-            // ctx.save(); ctx.fillStyle = rowColor; ctx.font = "bold 10px Nunito"; ctx.textAlign = "left";
-            // ctx.fillText(["LOW", "MID", "HIGH"][rIdx], 5, startY + 12); ctx.restore();
-
             rowKeys.forEach((pitch, sIdx) => {
-                let info = KEY_INFO[pitch];
-                if(!info) return;
-                
-                let x = sIdx * slotW;
-                let y = startY + (rowH * 0.1); // Small padding top
-                let w = slotW;
-                let h = rowH * 0.8; // Button height relative to row
+                let info = KEY_INFO[pitch]; if(!info) return;
+                let x = sIdx * slotW; let y = startY + (rowH * 0.1);
+                let w = slotW; let h = rowH * 0.8;
                 let cx = x + w/2; let cy = y + h/2;
-                
                 let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
                 let isWaiting = waitingForPitches.has(pitch);
-                
                 ctx.beginPath();
                 if(info.style === 'w') roundRectPath(ctx, x+2, y, w-4, h, 8); else ctx.arc(cx, cy, Math.min(w,h)/2.2, 0, Math.PI*2);
-
                 if (pitch === wrongKeyFeedback) { ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000"; } 
                 else if(isPressed) { ctx.shadowBlur = 20; ctx.shadowColor = rowColor; ctx.fillStyle = rowColor; } 
                 else if (isWaiting) { let a=(Math.sin(Date.now()/100)+1)/2*0.6+0.2; ctx.fillStyle = `rgba(255, 71, 87, ${a})`; } 
                 else { ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ffffff" : "#2d2d37"); }
                 ctx.fill();
-
                 if (pitch !== wrongKeyFeedback) { if(isWaiting) { ctx.lineWidth=3; ctx.strokeStyle="#ff4757"; ctx.stroke(); } else if(info.style==='b') { ctx.lineWidth=2; ctx.strokeStyle="#ffffff"; ctx.stroke(); } }
                 ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#1a1a24" : "#fff");
                 if(isWaiting && !isPressed) ctx.fillStyle = "#fff";
-                
-                // Adjust font size based on height
                 let fontSize = Math.min(20, rowH * 0.4); 
-                ctx.font = (info.style==='w' ? "bold " : "bold ") + fontSize + "px Nunito"; 
-                ctx.textAlign = "center"; 
-                ctx.fillText(info.charMobile, cx, cy + (fontSize/3)); 
-                ctx.shadowBlur = 0;
+                ctx.font = "bold " + fontSize + "px Nunito"; ctx.textAlign = "center"; 
+                ctx.fillText(info.charMobile, cx, cy + (fontSize/3)); ctx.shadowBlur = 0;
             });
         });
     }
 
     function drawPCMode() {
         const slotW = canvas.width / MAX_SLOTS_PC; const hitY = canvas.height - 100;
-        
         ctx.shadowBlur = 10; ctx.shadowColor = "rgba(255, 255, 255, 0.5)"; ctx.strokeStyle = "rgba(255, 255, 255, 0.8)"; ctx.lineWidth = 3;
         ctx.beginPath(); ctx.moveTo(0, hitY); ctx.lineTo(canvas.width, hitY); ctx.stroke(); ctx.shadowBlur = 0; 
-
         if (midiData) {
              const now = Tone.Transport.seconds;
              playGroups.forEach(group => { 
@@ -604,7 +586,6 @@
                          let info = getSmartInfo(note.pitch);
                          if(info && info.slotGlobal !== undefined){
                              if (trackMode === 'MELODY' && info.row === 0) ctx.globalAlpha = 0.1; else ctx.globalAlpha = 1.0;
-
                              let x = info.slotGlobal * slotW; let y = hitY - (timeDiff * 400); 
                              let h = Math.max(20, note.duration * 250); 
                              ctx.fillStyle = ROW_COLORS[info.row];
@@ -617,24 +598,15 @@
              });
         }
         for (let p in KEY_INFO) {
-            let pitch = parseInt(p); let info = KEY_INFO[p];
-            if(!info) continue;
+            let pitch = parseInt(p); let info = KEY_INFO[p]; if(!info) continue;
             let x = info.slotGlobal * slotW; let y = hitY; let w = slotW; let h = 80;
             let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
             let isWaiting = waitingForPitches.has(pitch); let color = ROW_COLORS[info.row];
-
             if (pitch === wrongKeyFeedback) { ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000"; } 
             else if(isPressed) { ctx.shadowBlur = 15; ctx.shadowColor = color; ctx.fillStyle = color; } 
             else if (isWaiting) { let a=(Math.sin(Date.now()/100)+1)/2*0.5+0.2; ctx.fillStyle = `rgba(255, 71, 87, ${a})`; ctx.strokeStyle = "#ff4757"; ctx.lineWidth=2; ctx.strokeRect(x+1,y,w-2,h); } 
             else { ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ffffff" : "#2d2d37"); }
-            
-            if(pitch !== wrongKeyFeedback) { 
-                ctx.beginPath();
-                roundRectPath(ctx, x+1, y, w-2, h, 6);
-                ctx.closePath();
-                ctx.fill(); 
-            } else { ctx.fillRect(x+1,y,w-2,h); }
-            
+            if(pitch !== wrongKeyFeedback) { ctx.beginPath(); roundRectPath(ctx, x+1, y, w-2, h, 6); ctx.closePath(); ctx.fill(); } else { ctx.fillRect(x+1,y,w-2,h); }
             ctx.shadowBlur = 0; ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#333" : "#aaa");
             if(isWaiting && !isPressed) ctx.fillStyle = "#fff"; ctx.font = "bold 14px Nunito"; ctx.textAlign = "center"; ctx.fillText(info.charPC, x + w/2, y + 45);
         }
@@ -691,12 +663,31 @@
         }
     }
 
+    // --- NEW TOUCH LOGIC (Multi-touch & Slide) ---
+    function handleTouch(e) {
+        e.preventDefault();
+        const currentTouches = new Set();
+        for (let i = 0; i < e.touches.length; i++) {
+            const touch = e.touches[i];
+            const p = getPitchFromXY(touch.clientX, touch.clientY);
+            if (p) currentTouches.add(p);
+        }
+        // Diffing: Play new notes
+        currentTouches.forEach(p => { if (!activeTouches.has(p)) playNote(p); });
+        // Diffing: Stop old notes
+        activeTouches.forEach(p => { if (!currentTouches.has(p)) stopNote(p); });
+    }
+
+    canvas.addEventListener('touchstart', handleTouch, {passive: false});
+    canvas.addEventListener('touchmove', handleTouch, {passive: false});
+    canvas.addEventListener('touchend', handleTouch);
+    canvas.addEventListener('touchcancel', handleTouch);
+
+    // Mouse Fallback
     canvas.addEventListener('mousedown', async (e) => { await Tone.start(); let p = getPitchFromXY(e.clientX, e.clientY); if(p) playNote(p); });
     canvas.addEventListener('mouseup', () => { activeTouches.forEach(p => stopNote(p)); });
     window.addEventListener('keydown', async (e) => { if(e.repeat) return; await Tone.start(); const k = e.key.toLowerCase(); if(KEY_MAP_PC[k]) playNote(KEY_MAP_PC[k]); });
     window.addEventListener('keyup', (e) => { const k = e.key.toLowerCase(); if(KEY_MAP_PC[k]) stopNote(KEY_MAP_PC[k]); });
-    canvas.addEventListener('touchstart', async (e) => { e.preventDefault(); await Tone.start(); for (let i=0; i<e.changedTouches.length; i++) { let p = getPitchFromXY(e.changedTouches[i].clientX, e.changedTouches[i].clientY); if(p) playNote(p); } }, {passive:false});
-    canvas.addEventListener('touchend', (e) => { e.preventDefault(); activeTouches.forEach(p => stopNote(p)); });
 
     document.getElementById('fileInput').addEventListener('change', async (e) => {
         const file = e.target.files[0]; if(!file) return;
@@ -706,11 +697,7 @@
 
     document.getElementById('btnPlay').addEventListener('click', async () => { if(!midiData) return alert("Load MIDI first"); await Tone.start(); if (Tone.Transport.state === 'started') { Tone.Transport.pause(); isPlaying = false; document.getElementById('btnPlay').innerText = "RESUME"; } else { Tone.Transport.start(); isPlaying = true; document.getElementById('btnPlay').innerText = "PAUSE"; } });
     document.getElementById('btnPlayMode').addEventListener('click', (e) => { let modes = ['AUTO', 'MANUAL', 'WAIT']; let nextIdx = (modes.indexOf(soundMode) + 1) % modes.length; soundMode = modes[nextIdx]; e.target.innerText = "Mode: " + soundMode; e.target.setAttribute('data-mode', soundMode); if(soundMode === 'WAIT') { Tone.Transport.stop(); isPlaying = false; document.getElementById('btnPlay').innerText = "START WAIT"; nextGroupIndex = 0; waitingForPitches.clear(); isWaitingState = false; } });
-    document.getElementById('btnViewMode').addEventListener('click', (e) => { 
-        viewMode = (viewMode === 'MOBILE') ? 'PC' : 'MOBILE'; 
-        e.target.innerText = "View: " + viewMode; 
-        if(midiData) generateSheetMusic(midiData); 
-    });
+    document.getElementById('btnViewMode').addEventListener('click', (e) => { viewMode = (viewMode === 'MOBILE') ? 'PC' : 'MOBILE'; e.target.innerText = "View: " + viewMode; if(midiData) generateSheetMusic(midiData); });
     document.getElementById('btnTrackMode').addEventListener('click', (e) => { trackMode = (trackMode === 'ALL') ? 'MELODY' : 'ALL'; e.target.innerText = "Track: " + trackMode; if(midiData) restartGame(); });
     document.getElementById('btnRecord').addEventListener('click', toggleRecording);
 
