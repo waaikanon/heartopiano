@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Heartopiano demo1</title>
+    <title>Heartopia demo2</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -23,10 +23,10 @@
             height: 100dvh; 
             touch-action: none;
             user-select: none;
-            -webkit-user-select: none; /* Disable selection on iOS */
+            -webkit-user-select: none;
         }
 
-        /* START OVERLAY (To unlock Audio) */
+        /* START OVERLAY */
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
             background: rgba(0,0,0,0.85); z-index: 9999;
@@ -224,12 +224,8 @@
     <div class="modal-content">
         <span class="close-btn" id="closeHelp">&times;</span>
         <h2 style="color:#00b894; border-bottom:1px solid #444; padding-bottom:10px; margin-top:0;">🎹 How to Play</h2>
-        <h3 style="color:#d63031; margin-bottom:5px;">• Recording</h3>
-        <p style="font-size:13px; color:#ccc; margin-top:0;">Press <b>🔴 REC</b> > Play > Press <b>STOP</b> to save MIDI.</p>
-        <h3 style="color:#ffc107; margin-bottom:5px;">• Modes</h3>
-        <p style="font-size:13px; color:#ccc; margin-top:0;"><b>AUTO:</b> Listen | <b>MANUAL:</b> Play | <b>WAIT:</b> Practice</p>
-        <h3 style="color:#ffc107; margin-bottom:5px;">• Navigation</h3>
-        <p style="font-size:13px; color:#ccc; margin-top:0;">Swipe on notes to seek.</p>
+        <h3 style="color:#ffc107; margin-bottom:5px;">• Views</h3>
+        <p style="font-size:13px; color:#ccc; margin-top:0;"><b>MOBILE:</b> Note Names (1,2,3).<br><b>KEYBOARD:</b> PC Keys (Q,W,E).<br><b>PC:</b> Falling Notes.</p>
     </div>
 </div>
 
@@ -344,7 +340,7 @@
                 if(info) {
                     allNotesRaw.push({ 
                         time: note.time, pitch: transposedPitch, 
-                        char: viewMode==='MOBILE'? info.charMobile : info.charPC,
+                        char: viewMode==='KEYBOARD' ? info.charPC : (viewMode==='MOBILE'? info.charMobile : info.charPC),
                         row: info.row, duration: note.duration
                     });
                 }
@@ -528,7 +524,11 @@
         if(canvas.width === 0) resize();
         try {
             ctx.fillStyle = "#1a1a24"; ctx.fillRect(0, 0, canvas.width, canvas.height);
-            if (viewMode === 'PC') drawPCMode(); else drawMobileMode();
+            
+            if (viewMode === 'PC') drawPCMode();
+            else if (viewMode === 'KEYBOARD') drawKeyboardMode(); // NEW MODE
+            else drawMobileMode();
+            
             let total = midiData ? midiData.duration : 0;
             let current = Tone.Transport.seconds;
             if (current > total) current = total;
@@ -537,6 +537,51 @@
             else if (midiData) { updateSheet(Tone.Transport.seconds); } 
         } catch (e) { console.error(e); }
         requestAnimationFrame(draw);
+    }
+
+    // --- NEW: KEYBOARD MODE (Layout like keyboard, Labels like PC) ---
+    function drawKeyboardMode() {
+        const rowH = canvas.height / 4;
+        // Draw in reverse order (Low to High) so Low is at bottom
+        const layoutRows = [ROWS.LOW, ROWS.MID, ROWS.HIGH]; 
+        
+        layoutRows.forEach((rowKeys, rIdx) => {
+            let slotW = canvas.width / rowKeys.length;
+            let startY = canvas.height - (rowH * (rIdx+1));
+            let rowColor = ROW_COLORS[rIdx];
+
+            ctx.fillStyle = (rIdx%2==0) ? "rgba(255,255,255,0.02)" : "rgba(255,255,255,0.05)";
+            ctx.fillRect(0, startY, canvas.width, rowH);
+            ctx.strokeStyle = rowColor; ctx.lineWidth = 2;
+            ctx.beginPath(); ctx.moveTo(0, startY); ctx.lineTo(canvas.width, startY); ctx.stroke();
+
+            rowKeys.forEach((pitch, sIdx) => {
+                let info = KEY_INFO[pitch]; if(!info) return;
+                let x = sIdx * slotW; let y = startY + (rowH * 0.1);
+                let w = slotW; let h = rowH * 0.8;
+                let cx = x + w/2; let cy = y + h/2;
+                let isPressed = activeTouches.has(pitch) || activeAutoNotes.has(pitch);
+                let isWaiting = waitingForPitches.has(pitch);
+                
+                ctx.beginPath();
+                if(info.style === 'w') roundRectPath(ctx, x+2, y, w-4, h, 8); else ctx.arc(cx, cy, Math.min(w,h)/2.2, 0, Math.PI*2);
+                
+                if (pitch === wrongKeyFeedback) { ctx.shadowBlur = 20; ctx.shadowColor = "#ff0000"; ctx.fillStyle = "#ff0000"; } 
+                else if(isPressed) { ctx.shadowBlur = 20; ctx.shadowColor = rowColor; ctx.fillStyle = rowColor; } 
+                else if (isWaiting) { let a=(Math.sin(Date.now()/100)+1)/2*0.6+0.2; ctx.fillStyle = `rgba(255, 71, 87, ${a})`; } 
+                else { ctx.shadowBlur = 0; ctx.fillStyle = (info.style==='w' ? "#ffffff" : "#2d2d37"); }
+                ctx.fill();
+
+                if (pitch !== wrongKeyFeedback) { if(isWaiting) { ctx.lineWidth=3; ctx.strokeStyle="#ff4757"; ctx.stroke(); } else if(info.style==='b') { ctx.lineWidth=2; ctx.strokeStyle="#ffffff"; ctx.stroke(); } }
+                ctx.fillStyle = (isPressed || pitch === wrongKeyFeedback) ? "#000" : (info.style==='w' ? "#1a1a24" : "#fff");
+                if(isWaiting && !isPressed) ctx.fillStyle = "#fff";
+                
+                // Show PC CHAR instead of Mobile Char
+                let fontSize = Math.min(24, rowH * 0.5); 
+                ctx.font = "bold " + fontSize + "px Nunito"; ctx.textAlign = "center"; 
+                ctx.fillText(info.charPC, cx, cy + (fontSize/3)); ctx.shadowBlur = 0;
+            });
+        });
     }
 
     function drawMobileMode() {
@@ -697,7 +742,17 @@
 
     document.getElementById('btnPlay').addEventListener('click', async () => { if(!midiData) return alert("Load MIDI first"); await Tone.start(); if (Tone.Transport.state === 'started') { Tone.Transport.pause(); isPlaying = false; document.getElementById('btnPlay').innerText = "RESUME"; } else { Tone.Transport.start(); isPlaying = true; document.getElementById('btnPlay').innerText = "PAUSE"; } });
     document.getElementById('btnPlayMode').addEventListener('click', (e) => { let modes = ['AUTO', 'MANUAL', 'WAIT']; let nextIdx = (modes.indexOf(soundMode) + 1) % modes.length; soundMode = modes[nextIdx]; e.target.innerText = "Mode: " + soundMode; e.target.setAttribute('data-mode', soundMode); if(soundMode === 'WAIT') { Tone.Transport.stop(); isPlaying = false; document.getElementById('btnPlay').innerText = "START WAIT"; nextGroupIndex = 0; waitingForPitches.clear(); isWaitingState = false; } });
-    document.getElementById('btnViewMode').addEventListener('click', (e) => { viewMode = (viewMode === 'MOBILE') ? 'PC' : 'MOBILE'; e.target.innerText = "View: " + viewMode; if(midiData) generateSheetMusic(midiData); });
+    
+    // VIEW MODE TOGGLE UPDATE
+    document.getElementById('btnViewMode').addEventListener('click', (e) => { 
+        if (viewMode === 'MOBILE') viewMode = 'PC';
+        else if (viewMode === 'PC') viewMode = 'KEYBOARD';
+        else viewMode = 'MOBILE';
+        
+        e.target.innerText = "View: " + viewMode; 
+        if(midiData) generateSheetMusic(midiData); 
+    });
+    
     document.getElementById('btnTrackMode').addEventListener('click', (e) => { trackMode = (trackMode === 'ALL') ? 'MELODY' : 'ALL'; e.target.innerText = "Track: " + trackMode; if(midiData) restartGame(); });
     document.getElementById('btnRecord').addEventListener('click', toggleRecording);
 
@@ -735,4 +790,3 @@
 </script>
 </body>
 </html>
-
