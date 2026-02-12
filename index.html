@@ -5,7 +5,7 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
     <meta name="apple-mobile-web-app-capable" content="yes">
     <meta name="mobile-web-app-capable" content="yes">
-    <title>Heartopia Demo13 Fix</title>
+    <title>Heartopia V67 File Loader</title>
     <script src="https://unpkg.com/@tonejs/midi"></script>
     <script src="https://unpkg.com/tone"></script>
     <style>
@@ -23,16 +23,18 @@
 
         #start-overlay {
             position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-            background: rgba(0,0,0,0.9); z-index: 9999;
+            background: rgba(0,0,0,0.85); z-index: 9999;
             display: flex; flex-direction: column;
             align-items: center; justify-content: center;
             cursor: pointer;
         }
-        #start-text {
-            font-size: 24px; color: #00d2ff; font-weight: bold;
-            animation: pulseText 1.5s infinite;
+        #start-btn {
+            padding: 20px 40px; font-size: 24px; color: #fff;
+            background: #00d2ff; border: none; border-radius: 50px;
+            font-family: 'Nunito', sans-serif; font-weight: bold;
+            box-shadow: 0 0 20px #00d2ff; animation: pulseBtn 1.5s infinite;
         }
-        @keyframes pulseText { 0% { opacity: 0.5; } 50% { opacity: 1; } 100% { opacity: 0.5; } }
+        @keyframes pulseBtn { 0% { transform: scale(1); } 50% { transform: scale(1.05); } 100% { transform: scale(1); } }
 
         #time-display {
             position: absolute; top: 10px; right: 15px;
@@ -148,8 +150,9 @@
 <body>
 
 <div id="start-overlay">
-    <div id="start-text">TAP TO START</div>
-    <p style="color: #ccc; font-size: 12px; margin-top: 5px;">(Unlock Audio & Touch)</p>
+    <div style="font-size: 40px; margin-bottom: 20px;">🎹</div>
+    <button id="start-btn">TAP TO START</button>
+    <p style="color: #aaa; margin-top: 10px; font-size: 14px;">(Unlock Audio & Touch)</p>
 </div>
 
 <div id="time-display">0:00 / 0:00</div> 
@@ -162,7 +165,8 @@
 </div>
 
 <div id="controls">
-    <input type="file" id="fileInput" accept=".mid" style="width: 90px;">
+    <input type="file" id="fileInput" accept=".mid">
+    
     <button id="btnPlay">PLAY</button>
     
     <select id="selInstrument" class="sel-inst-piano">
@@ -248,16 +252,11 @@
     const KEY_INFO_KALIMBA_BY_INDEX = {}; 
     const KEY_MAP_PC = {}; 
 
-    // Helper to register key
     function registerPCKey(char, type, id) {
         const lower = char.toLowerCase();
         if(!KEY_MAP_PC[lower]) KEY_MAP_PC[lower] = {};
         KEY_MAP_PC[lower][type] = id;
-        
-        if(".,/;[]-=".includes(char)) {
-            if(!KEY_MAP_PC[char]) KEY_MAP_PC[char] = {};
-            KEY_MAP_PC[char][type] = id;
-        }
+        if(".,/;[]-=".includes(char)) { if(!KEY_MAP_PC[char]) KEY_MAP_PC[char] = {}; KEY_MAP_PC[char][type] = id; }
     }
 
     // --- POPULATE PIANO ---
@@ -268,7 +267,6 @@
         let info = { charPC, charMobile, row: rowType, slotRow: slotInRow, slotGlobal: globalSlot, style: 'w' };
         if(charMobile.includes('#')) info.style = 'b';
         KEY_INFO_PIANO[pitch] = info;
-        
         registerPCKey(charPC, 'PIANO', pitch);
         rowArr.push(pitch);
     }
@@ -287,18 +285,16 @@
     addKeyPiano(81, 'Y', '6', 2); addKeyPiano(82, '7', '6#', 2); addKeyPiano(83, 'U', '7', 2); 
     addKeyPiano(84, 'I', '7#', 2);
 
-    // --- POPULATE KALIMBA (CORRECT LABELS Y,U,I...) ---
+    // --- POPULATE KALIMBA (Unique Index) ---
     let kalimbaIndexCounter = 0;
     function addKeyKalimba(pitch, char, rowType) {
         let rowArr = (rowType === 0) ? KALIMBA_ROWS.LOW : (rowType === 1) ? KALIMBA_ROWS.MID : KALIMBA_ROWS.HIGH;
         let kIndex = kalimbaIndexCounter++;
-        // NOTE: 'char' here is the Display Label AND the Keyboard trigger
         let obj = { pitch, char, row: rowType, index: kIndex };
         KEY_INFO_KALIMBA_BY_INDEX[kIndex] = obj;
         if (!KEY_INFO_KALIMBA[pitch]) KEY_INFO_KALIMBA[pitch] = [];
         KEY_INFO_KALIMBA[pitch].push(obj);
         rowArr.push(obj);
-        
         registerPCKey(char, 'KALIMBA', kIndex);
     }
     // LOW (Bot) - N M , . /
@@ -314,10 +310,7 @@
     const sampler = new Tone.Sampler({
         urls: { "A0":"A0.mp3", "C1":"C1.mp3", "C2":"C2.mp3", "C3":"C3.mp3", "C4":"C4.mp3", "C5":"C5.mp3", "C6":"C6.mp3", "C7":"C7.mp3" },
         release: 1.2, baseUrl: "https://tonejs.github.io/audio/salamander/",
-        onload: () => {
-            document.getElementById('statusText').innerText = "Ready!";
-            document.getElementById('statusText').classList.add('ready');
-        }
+        onload: () => { document.getElementById('statusText').innerText = "Ready!"; document.getElementById('statusText').classList.add('ready'); }
     });
     const lowPass = new Tone.Filter(3500, "lowpass");
     const reverb = new Tone.Reverb({ decay: 2.0, wet: 0.25 });
@@ -518,7 +511,13 @@
 
             if (soundMode === 'WAIT' && waitingForPitches.size > 0) {
                 if (waitingForPitches.has(pitch)) {
-                    sampler.triggerAttack(Tone.Frequency(pitch, "midi").toNote()); Tone.Transport.start(); isWaitingState = false; nextGroupIndex++; waitingForPitches.clear(); 
+                    // ONE-TAP FIX: Play Note for full duration
+                    let grp = playGroups[nextGroupIndex];
+                    let matchedNote = grp.notes.find(n => n.pitch === pitch);
+                    let dur = matchedNote ? matchedNote.duration : "8n";
+                    sampler.triggerAttackRelease(Tone.Frequency(pitch, "midi").toNote(), dur); 
+                    
+                    Tone.Transport.start(); isWaitingState = false; nextGroupIndex++; waitingForPitches.clear(); 
                     document.getElementById('statusText').innerText = "PLAYING..."; document.getElementById('statusText').style.color = "#00ff88";
                     addToHistory(char, ROW_COLORS[row]);
                 } else { wrongKeyFeedback = identifier; setTimeout(() => { wrongKeyFeedback = null; }, 300); }
@@ -538,7 +537,9 @@
         }
         if (type === 'PIANO') activePianoKeys.delete(identifier);
         else activeKalimbaIndices.delete(identifier);
-        if(soundMode !== 'AUTO') sampler.triggerRelease(Tone.Frequency(pitch, "midi").toNote());
+        
+        // Prevent cutting off sound in WAIT mode
+        if(soundMode !== 'AUTO' && soundMode !== 'WAIT') sampler.triggerRelease(Tone.Frequency(pitch, "midi").toNote());
     }
 
     function handleTouch(e) {
